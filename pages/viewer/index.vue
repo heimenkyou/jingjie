@@ -1,27 +1,17 @@
 <template>
 	<view class="container">
-		<swiper 
-			class="swiper" 
-			:indicator-dots="barcodes.length > 1" 
-			:autoplay="false" 
-			:duration="300"
-			indicator-color="rgba(255,255,255,0.3)"
-			indicator-active-color="#ffffff"
-		>
+		<swiper class="swiper" :indicator-dots="barcodes.length > 1" :autoplay="false" :duration="300"
+			indicator-color="rgba(255,255,255,0.3)" indicator-active-color="#ffffff">
 			<swiper-item v-for="(item, index) in barcodes" :key="item.id">
 				<view class="swiper-item">
-					<image 
-						class="barcode-image" 
-						:src="item.imageData" 
-						mode="widthFix"
-					></image>
+					<image class="barcode-image" :src="item.imageData" mode="aspectFit"></image>
 					<view class="label-container">
 						<text class="barcode-label">{{ item.name || '条码 ' + (index + 1) }}</text>
 					</view>
-					</view>
+				</view>
 			</swiper-item>
 		</swiper>
-		
+
 		<!-- 空状态 -->
 		<view class="empty-container" v-if="barcodes.length === 0">
 			<text class="empty-icon">📷</text>
@@ -84,10 +74,10 @@ onShow(() => {
 		value: 1
 	});
 	// #endif
-	
+
 	// 每次显示时重新加载数据
 	loadBarcodes();
-	
+
 	// 如果没有条码，提示用户
 	if (barcodes.value.length === 0) {
 		setTimeout(() => {
@@ -134,20 +124,20 @@ onHide(() => {
 
 .barcode-image {
 	width: 100%;
-	max-height: 85vh;
+	height: 100%;
 }
 
 .label-container {
 	position: absolute;
 	bottom: 20px;
-	background: rgba(0,0,0,0.5);
+	background: rgba(0, 0, 0, 0.5);
 	padding: 8px 16px;
 	border-radius: 20px;
 }
 
 .barcode-label {
 	font-size: 14px;
-	color: rgba(255,255,255,0.9);
+	color: rgba(255, 255, 255, 0.9);
 }
 
 .empty-container {
@@ -166,7 +156,7 @@ onHide(() => {
 
 .empty-text {
 	font-size: 18px;
-	color: rgba(255,255,255,0.6);
+	color: rgba(255, 255, 255, 0.6);
 	margin-bottom: 30px;
 }
 
