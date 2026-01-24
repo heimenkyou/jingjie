@@ -1,0 +1,36 @@
+# uni-app项目忽略文件
+
+# HBuilderX生成文件
+unpackage/
+.hbuilderx/
+
+# Node模块
+node_modules/
+
+# 日志文件
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# 本地环境配置
+.env.local
+.env.*.local
+
+# 构建文件
+dist/
+build/

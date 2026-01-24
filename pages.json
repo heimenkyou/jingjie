@@ -1,0 +1,46 @@
+{
+	"pages": [
+		{
+			"path": "pages/viewer/index",
+			"style": {
+				"navigationBarTitleText": "条码展示",
+				"navigationStyle": "custom",
+				"app-plus": {
+					"titleNView": false
+				}
+			}
+		},
+		{
+			"path": "pages/settings/index",
+			"style": {
+				"navigationBarTitleText": "设置管理"
+			}
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "我要喝水吹头发",
+		"navigationBarBackgroundColor": "#F8F8F8",
+		"backgroundColor": "#F8F8F8"
+	},
+	"tabBar": {
+		"color": "#7A7E83",
+		"selectedColor": "#667eea",
+		"borderStyle": "black",
+		"backgroundColor": "#ffffff",
+		"list": [
+			{
+				"pagePath": "pages/viewer/index",
+				"iconPath": "static/barcode-icon.png",
+				"selectedIconPath": "static/barcode-icon-active.png",
+				"text": "条码"
+			},
+			{
+				"pagePath": "pages/settings/index",
+				"iconPath": "static/settings-icon.png",
+				"selectedIconPath": "static/settings-icon-active.png",
+				"text": "设置"
+			}
+		]
+	}
+}
