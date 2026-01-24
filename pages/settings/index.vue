@@ -9,8 +9,9 @@
 		<view class="barcode-list" v-if="barcodes.length > 0">
 			<view class="barcode-item" v-for="(item, index) in barcodes" :key="item.id">
 				<image class="barcode-image" :src="item.imageData" mode="aspectFit"></image>
-				<view class="barcode-info">
+				<view class="barcode-info" @click="renameBarcode(index)">
 					<text class="barcode-name">{{ item.name || '条码 ' + (index + 1) }}</text>
+					<text class="barcode-hint">点击编辑名称</text>
 				</view>
 				<view class="barcode-actions">
 					<button class="btn-delete" @click="deleteBarcode(index)">删除</button>
@@ -164,6 +165,30 @@ const deleteBarcode = (index) => {
 	});
 };
 
+/**
+ * 重命名条码
+ * @param {number} index - 条码在数组中的索引
+ */
+const renameBarcode = (index) => {
+	uni.showModal({
+		title: '修改名称',
+		content: '请输入新名称',
+		editable: true,
+		placeholderText: barcodes.value[index].name || '条码 ' + (index + 1),
+		success: (res) => {
+			if (res.confirm && res.content) {
+				barcodes.value[index].name = res.content.trim();
+				saveBarcodes();
+				console.log('条码名称已修改:', barcodes.value[index]);
+				uni.showToast({
+					title: '修改成功',
+					icon: 'success'
+				});
+			}
+		}
+	});
+};
+
 onMounted(() => {
 	loadBarcodes();
 });
@@ -233,6 +258,7 @@ onShow(() => {
 	flex: 1;
 	min-width: 0;
 	overflow: hidden;
+	cursor: pointer;
 }
 
 .barcode-name {

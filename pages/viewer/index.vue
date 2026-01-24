@@ -13,10 +13,12 @@
 					<image 
 						class="barcode-image" 
 						:src="item.imageData" 
-						mode="aspectFit"
+						mode="widthFix"
 					></image>
-					<text class="barcode-label">{{ item.name || '条码 ' + (index + 1) }}</text>
-				</view>
+					<view class="label-container">
+						<text class="barcode-label">{{ item.name || '条码 ' + (index + 1) }}</text>
+					</view>
+					</view>
 			</swiper-item>
 		</swiper>
 		
@@ -127,19 +129,25 @@ onHide(() => {
 	align-items: center;
 	height: 100%;
 	color: #fff;
-	padding: 20px;
+	padding: 0;
 }
 
 .barcode-image {
-	width: 90%;
-	height: 70%;
-	max-width: 500px;
+	width: 100%;
+	max-height: 85vh;
+}
+
+.label-container {
+	position: absolute;
+	bottom: 20px;
+	background: rgba(0,0,0,0.5);
+	padding: 8px 16px;
+	border-radius: 20px;
 }
 
 .barcode-label {
-	margin-top: 20px;
-	font-size: 16px;
-	color: rgba(255,255,255,0.7);
+	font-size: 14px;
+	color: rgba(255,255,255,0.9);
 }
 
 .empty-container {
