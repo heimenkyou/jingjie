@@ -8,10 +8,18 @@
 		<!-- 条码列表 -->
 		<view class="barcode-list" v-if="barcodes.length > 0">
 			<view class="barcode-item" v-for="(item, index) in barcodes" :key="item.id">
-				<image class="barcode-image" :src="item.imageData" mode="aspectFit"></image>
+				<view class="image-wrapper">
+					<image class="barcode-image" :src="item.imageData" mode="aspectFit"></image>
+					<!-- 默认条码单选框 -->
+					<view class="radio-wrapper" @click="setDefaultBarcode(item.id)">
+						<view class="radio-circle" :class="{ 'radio-selected': defaultBarcodeId === item.id }">
+							<view class="radio-dot" v-if="defaultBarcodeId === item.id"></view>
+						</view>
+					</view>
+				</view>
 				<view class="barcode-info" @click="renameBarcode(index)">
 					<text class="barcode-name">{{ item.name || '条码 ' + (index + 1) }}</text>
-					<text class="barcode-hint">点击编辑名称</text>
+					<text class="barcode-hint">{{ defaultBarcodeId === item.id ? '点击编辑名称\n✨ 默认开屏' : '点击编辑名称' }}</text>
 				</view>
 				<view class="barcode-actions">
 					<button class="btn-delete" @click="deleteBarcode(index)">删除</button>
@@ -64,7 +72,7 @@
 				<view class="author-section">
 					<text class="author-title">👨‍💻 作者信息</text>
 					<text class="author-collab">👤 罗文彬 + 🤖 Claude 4.5 = 🚀 极速体验</text>
-					<text class="author-quote">"我厌倦了等待广告，于是和 AI 聊了一个下午，做出了这个应用。"</text>
+					<text class="author-quote">"我厌倦了等待广告，于是和 AI 聊了一个晚上，做出了这个应用。"</text>
 				</view>
 
 				<view class="contact-section">
@@ -82,6 +90,7 @@ import { ref, onMounted } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 
 const barcodes = ref([]);
+const defaultBarcodeId = ref('');
 
 /**
  * 从本地存储加载条码数据
@@ -89,6 +98,13 @@ const barcodes = ref([]);
 const loadBarcodes = () => {
 	const data = uni.getStorageSync('barcodes');
 	barcodes.value = data || [];
+	// 加载默认条码ID
+	defaultBarcodeId.value = uni.getStorageSync('defaultBarcodeId') || '';
+	// 如果默认条码ID不存在或不在列表中，自动设置第一个为默认
+	if (barcodes.value.length > 0 && (!defaultBarcodeId.value || !barcodes.value.find(b => b.id === defaultBarcodeId.value))) {
+		defaultBarcodeId.value = barcodes.value[0].id;
+		uni.setStorageSync('defaultBarcodeId', defaultBarcodeId.value);
+	}
 };
 
 /**
@@ -96,6 +112,20 @@ const loadBarcodes = () => {
  */
 const saveBarcodes = () => {
 	uni.setStorageSync('barcodes', barcodes.value);
+};
+
+/**
+ * 设置默认条码
+ * @param {string} barcodeId - 条码ID
+ */
+const setDefaultBarcode = (barcodeId) => {
+	defaultBarcodeId.value = barcodeId;
+	uni.setStorageSync('defaultBarcodeId', barcodeId);
+	uni.showToast({
+		title: '已设为默认',
+		icon: 'success',
+		duration: 1500
+	});
 };
 
 /**
@@ -130,6 +160,11 @@ const addBarcode = () => {
 							};
 
 							barcodes.value.push(newBarcode);
+							// 如果是第一个条码，自动设为默认
+							if (barcodes.value.length === 1) {
+								defaultBarcodeId.value = newBarcode.id;
+								uni.setStorageSync('defaultBarcodeId', newBarcode.id);
+							}
 							saveBarcodes();
 							console.log('条码已保存到storage:', barcodes.value);
 
@@ -167,6 +202,11 @@ const addBarcode = () => {
 			};
 
 			barcodes.value.push(newBarcode);
+			// 如果是第一个条码，自动设为默认
+			if (barcodes.value.length === 1) {
+				defaultBarcodeId.value = newBarcode.id;
+				uni.setStorageSync('defaultBarcodeId', newBarcode.id);
+			}
 			saveBarcodes();
 			console.log('条码已保存到storage:', barcodes.value);
 
@@ -192,7 +232,18 @@ const deleteBarcode = (index) => {
 		content: '确定要删除这个条码吗？',
 		success: (res) => {
 			if (res.confirm) {
+				const deletedId = barcodes.value[index].id;
 				barcodes.value.splice(index, 1);
+				// 如果删除的是默认条码，重新设置默认条码
+				if (deletedId === defaultBarcodeId.value) {
+					if (barcodes.value.length > 0) {
+						defaultBarcodeId.value = barcodes.value[0].id;
+						uni.setStorageSync('defaultBarcodeId', defaultBarcodeId.value);
+					} else {
+						defaultBarcodeId.value = '';
+						uni.removeStorageSync('defaultBarcodeId');
+					}
+				}
 				saveBarcodes();
 				uni.showToast({
 					title: '删除成功',
@@ -288,8 +339,46 @@ onShow(() => {
 	max-height: 80px;
 	border-radius: 8px;
 	background-color: #f0f0f0;
-	margin-right: 15px;
 	flex-shrink: 0;
+}
+
+.image-wrapper {
+	position: relative;
+	margin-right: 15px;
+}
+
+/* 单选框包装器 */
+.radio-wrapper {
+	position: absolute;
+	top: -6px;
+	left: -6px;
+	padding: 6px;
+	z-index: 10;
+}
+
+.radio-circle {
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	border: 2px solid #d1d5db;
+	background-color: #fff;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: all 0.2s ease;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.radio-selected {
+	border-color: #10b981;
+	background-color: #10b981;
+}
+
+.radio-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background-color: #fff;
 }
 
 .barcode-info {

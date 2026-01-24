@@ -1,29 +1,29 @@
 {
-  "version": "1",
-  "prompt": "template",
-  "title": "隐私政策说明",
-  "message": "　　欢迎使用“我要喝水吹头发”！<br/>　　这是一款纯离线工具，我们承诺不收集、不上传任何个人信息。<br/><br/>　　为了实现核心功能，本应用需要以下权限：<br/>　　1. <b>修改系统设置</b>：用于自动调至最高亮度。<br/>　　2. <b>访问相册/存储</b>：用于您自主上传和保存图片。<br/><br/>　　所有数据仅保存在您的手机本地。如果您同意，请点击下方按钮开始使用。",
-  "buttonAccept": "同意并开始",
-  "buttonRefuse": "暂不同意",
-  "hrefLoader": "default",
-  "backToExit": "true",
-  "second": {
-    "title": "确认提示",
-    "message": "　　进入应用前，您需先同意本隐私说明。否则应用无法获取必要的亮度调节和本地图片读取权限，将无法正常工作。",
-    "buttonAccept": "同意并继续",
-    "buttonRefuse": "退出应用"
-  },
-  "styles": {
-    "backgroundColor": "#FFFFFF",
-    "borderRadius": "10px",
-    "title": {
-      "color": "#647EFF"
+    "version": "1",
+    "prompt": "template",
+    "title": "隐私政策说明",
+    "message": "　　欢迎使用“我要喝水吹头发”！<br/>　　这是一款纯离线工具，我们承诺不收集、不上传任何个人信息。<br/><br/>　　为了实现核心功能，本应用需要以下权限：<br/>　　1. <b>修改系统设置</b>：用于自动调至最高亮度。<br/>　　2. <b>访问相册/存储</b>：用于您自主上传和保存图片。<br/><br/>　　所有数据仅保存在您的手机本地。如果您同意，请点击下方按钮开始使用。",
+    "buttonAccept": "同意并开始",
+    "buttonRefuse": "暂不同意",
+    "hrefLoader": "default",
+    "backToExit": "true",
+    "second": {
+        "title": "确认提示",
+        "message": "　　进入应用前，您需先同意本隐私说明。否则应用无法获取必要的亮度调节和本地图片读取权限，将无法正常工作。",
+        "buttonAccept": "同意并继续",
+        "buttonRefuse": "退出应用"
     },
-    "buttonAccept": {
-      "color": "#42D392"
-    },
-    "buttonRefuse": {
-      "color": "#999999"
+    "styles": {
+        "backgroundColor": "#FFFFFF",
+        "borderRadius": "10px",
+        "title": {
+            "color": "#10b981"
+        },
+        "buttonAccept": {
+            "color": "#10b981"
+        },
+        "buttonRefuse": {
+            "color": "#999999"
+        }
     }
-  }
 }

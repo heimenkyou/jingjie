@@ -1,7 +1,7 @@
 <template>
 	<view class="container">
-		<swiper class="swiper" :indicator-dots="barcodes.length > 1" :autoplay="false" :duration="300"
-			indicator-color="rgba(255,255,255,0.3)" indicator-active-color="#10b981">
+		<swiper class="swiper" :current="currentIndex" :indicator-dots="barcodes.length > 1" :autoplay="false"
+			:duration="300" indicator-color="rgba(255,255,255,0.3)" indicator-active-color="#10b981">
 			<swiper-item v-for="(item, index) in barcodes" :key="item.id">
 				<view class="swiper-item">
 					<image class="barcode-image" :src="item.imageData" mode="aspectFit"></image>
@@ -64,6 +64,7 @@ import { onShow, onHide } from '@dcloudio/uni-app';
 
 const barcodes = ref([]);
 const showBrightnessTip = ref(false);
+const currentIndex = ref(0);
 
 /**
  * 从本地存储加载条码数据
@@ -71,7 +72,22 @@ const showBrightnessTip = ref(false);
 const loadBarcodes = () => {
 	const data = uni.getStorageSync('barcodes');
 	console.log('viewer加载条码:', data);
-	barcodes.value = data || [];
+	let loadedBarcodes = data || [];
+
+	// 加载默认条码ID
+	const defaultBarcodeId = uni.getStorageSync('defaultBarcodeId');
+
+	// 如果有默认条码，将其移动到数组第一位
+	if (defaultBarcodeId && loadedBarcodes.length > 0) {
+		const defaultIndex = loadedBarcodes.findIndex(b => b.id === defaultBarcodeId);
+		if (defaultIndex > 0) {
+			const defaultBarcode = loadedBarcodes.splice(defaultIndex, 1)[0];
+			loadedBarcodes.unshift(defaultBarcode);
+		}
+	}
+
+	barcodes.value = loadedBarcodes;
+	currentIndex.value = 0; // 总是从第一张开始
 	console.log('viewer当前条码数量:', barcodes.value.length);
 };
 
