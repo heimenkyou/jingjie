@@ -4,7 +4,7 @@
 			<text class="title">条码管理</text>
 			<text class="subtitle">添加您的饮水机和吹风机条码</text>
 		</view>
-		
+
 		<!-- 条码列表 -->
 		<view class="barcode-list" v-if="barcodes.length > 0">
 			<view class="barcode-item" v-for="(item, index) in barcodes" :key="item.id">
@@ -18,13 +18,13 @@
 				</view>
 			</view>
 		</view>
-		
+
 		<!-- 空状态 -->
 		<view class="empty-state" v-else>
 			<text class="empty-text">📷 暂无条码</text>
 			<text class="empty-hint">点击下方按钮添加您的第一个条码</text>
 		</view>
-        
+
 		<!-- 底部操作区 -->
 		<view class="footer">
 			<button class="btn-add" type="primary" @click="addBarcode">+ 添加条码</button>
@@ -34,7 +34,45 @@
 				<text class="info-text">2. 在条码展示页左右滑动切换</text>
 				<text class="info-text">3. 应用会自动调节屏幕亮度至最高</text>
 			</view>
-			<text class="desc">开发者：Heimenkyou | v1.0</text>
+
+			<!-- 关于本项目 -->
+			<view class="about-section">
+				<text class="about-title">💡 关于本项目</text>
+
+				<view class="about-block">
+					<text class="about-subtitle">项目背景</text>
+					<text class="about-text">这款应用的诞生源于对校园生活的深度观察：</text>
+				</view>
+
+				<view class="about-block">
+					<text class="about-label">📱 现状痛点</text>
+					<text class="about-text">校园原版应用"多彩校园"启动慢、强制弹窗广告、关闭按钮极小。且条码需要手动展开，整个流程极其繁琐。</text>
+				</view>
+
+				<view class="about-block">
+					<text class="about-label">🔍 替代方案的局限</text>
+					<text class="about-text">可以尝试使用相册截图，但相册查找慢、有应用锁的话还需解锁，且最关键的是【相册截图无法像原版应用那样自动调高屏幕亮度】，导致扫码效率低。</text>
+				</view>
+
+				<view class="about-block">
+					<text class="about-label">🚀 本应用使命</text>
+					<text class="about-text">实现"开箱即用"。点开即是条码、自动调至最高亮度、左右滑动切换。把被广告和层层菜单偷走的时间抢回来。</text>
+				</view>
+
+				<view class="divider"></view>
+
+				<view class="author-section">
+					<text class="author-title">👨‍💻 作者信息</text>
+					<text class="author-collab">👤 罗文彬 + 🤖 Claude 4.5 = 🚀 极速体验</text>
+					<text class="author-quote">"我厌倦了等待广告，于是和 AI 聊了一个下午，做出了这个应用。"</text>
+				</view>
+
+				<view class="contact-section">
+					<text class="contact-title">📧 联系方式</text>
+					<text class="contact-item">QQ: 3209871721</text>
+					<text class="contact-item">邮箱: wenbin.lo@outlook.com</text>
+				</view>
+			</view>
 		</view>
 	</view>
 </template>
@@ -71,30 +109,30 @@ const addBarcode = () => {
 		success: (res) => {
 			console.log('选择图片成功:', res);
 			const tempFilePath = res.tempFilePaths[0];
-			
+
 			// #ifdef APP-PLUS
 			// APP环境：将文件保存到应用沙盒目录
 			const savedFileName = Date.now() + '.jpg';
-			
+
 			plus.io.resolveLocalFileSystemURL('_doc', (entry) => {
 				entry.getDirectory('barcodes', { create: true }, (dirEntry) => {
 					console.log('目录创建成功');
-					
+
 					plus.io.resolveLocalFileSystemURL(tempFilePath, (fileEntry) => {
 						fileEntry.copyTo(dirEntry, savedFileName, (newEntry) => {
 							const finalPath = newEntry.toLocalURL();
 							console.log('文件保存成功:', finalPath);
-							
+
 							const newBarcode = {
 								id: Date.now() + '_' + Math.random().toString(36).substr(2, 9),
 								name: '',
 								imageData: finalPath
 							};
-							
+
 							barcodes.value.push(newBarcode);
 							saveBarcodes();
 							console.log('条码已保存到storage:', barcodes.value);
-							
+
 							uni.showToast({
 								title: '添加成功',
 								icon: 'success'
@@ -116,7 +154,7 @@ const addBarcode = () => {
 				console.error('解析_doc失败:', error);
 			});
 			// #endif
-			
+
 			// #ifndef APP-PLUS
 			// H5环境：转Base64（仅用于开发测试）
 			// 注意：H5环境下uni.getFileSystemManager也可能不可用
@@ -127,11 +165,11 @@ const addBarcode = () => {
 				name: '',
 				imageData: tempFilePath
 			};
-			
+
 			barcodes.value.push(newBarcode);
 			saveBarcodes();
 			console.log('条码已保存到storage:', barcodes.value);
-			
+
 			uni.showToast({
 				title: '添加成功',
 				icon: 'success'
@@ -209,7 +247,7 @@ onShow(() => {
 
 .header {
 	padding: 30px 20px 20px;
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
 	color: white;
 }
 
@@ -238,7 +276,7 @@ onShow(() => {
 	margin-bottom: 15px;
 	display: flex;
 	align-items: center;
-	box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .barcode-image {
@@ -310,7 +348,7 @@ onShow(() => {
 
 .btn-add {
 	width: 100%;
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
 	color: white;
 	border: none;
 	border-radius: 8px;
@@ -348,5 +386,109 @@ onShow(() => {
 	color: #999;
 	display: block;
 	text-align: center;
+}
+
+/* 关于本项目 */
+.about-section {
+	background: rgba(255, 255, 255, 0.6);
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
+	border-radius: 12px;
+	padding: 20px;
+	margin-bottom: 15px;
+	border: 1px solid rgba(16, 185, 129, 0.1);
+}
+
+.about-title {
+	font-size: 18px;
+	font-weight: bold;
+	color: #10b981;
+	display: block;
+	margin-bottom: 16px;
+	text-align: center;
+}
+
+.about-block {
+	margin-bottom: 14px;
+}
+
+.about-subtitle {
+	font-size: 15px;
+	font-weight: 600;
+	color: #333;
+	display: block;
+	margin-bottom: 8px;
+}
+
+.about-label {
+	font-size: 14px;
+	font-weight: 600;
+	color: #10b981;
+	display: block;
+	margin-bottom: 6px;
+}
+
+.about-text {
+	font-size: 13px;
+	color: #666;
+	line-height: 1.7;
+	display: block;
+}
+
+.divider {
+	height: 1px;
+	background: linear-gradient(to right, transparent, rgba(16, 185, 129, 0.3), transparent);
+	margin: 20px 0;
+}
+
+.author-section {
+	margin-bottom: 16px;
+	text-align: center;
+}
+
+.author-title {
+	font-size: 15px;
+	font-weight: 600;
+	color: #333;
+	display: block;
+	margin-bottom: 10px;
+}
+
+.author-collab {
+	font-size: 14px;
+	color: #10b981;
+	font-weight: 500;
+	display: block;
+	margin-bottom: 8px;
+}
+
+.author-quote {
+	font-size: 12px;
+	color: #999;
+	font-style: italic;
+	display: block;
+	line-height: 1.6;
+}
+
+.contact-section {
+	background: rgba(16, 185, 129, 0.05);
+	border-radius: 8px;
+	padding: 12px;
+	text-align: center;
+}
+
+.contact-title {
+	font-size: 14px;
+	font-weight: 600;
+	color: #333;
+	display: block;
+	margin-bottom: 8px;
+}
+
+.contact-item {
+	font-size: 13px;
+	color: #666;
+	display: block;
+	line-height: 1.8;
 }
 </style>
