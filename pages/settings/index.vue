@@ -80,6 +80,21 @@
 					<text class="contact-item">QQ: 3209871721</text>
 					<text class="contact-item">邮箱: wenbin.lo@outlook.com</text>
 				</view>
+
+				<view class="source-section">
+					<text class="source-title">⭐ 开源地址</text>
+					<text class="source-hint">本项目已开源，欢迎 Star 和贡献代码</text>
+					<view class="source-links">
+						<view class="source-link" @click="openSourceLink('github')">
+							<image class="link-icon" src="/static/github.png" mode="aspectFit"></image>
+							<text class="link-text">GitHub</text>
+						</view>
+						<view class="source-link" @click="openSourceLink('gitee')">
+							<image class="link-icon" src="/static/gitee.png" mode="aspectFit"></image>
+							<text class="link-text">Gitee</text>
+						</view>
+					</view>
+				</view>
 			</view>
 		</view>
 	</view>
@@ -276,6 +291,28 @@ const renameBarcode = (index) => {
 			}
 		}
 	});
+};
+
+/**
+ * 打开源码链接
+ * @param {string} platform - 平台类型 ('github' 或 'gitee')
+ */
+const openSourceLink = (platform) => {
+	const urls = {
+		github: 'https://github.com/heimenkyou/water-hair',
+		gitee: 'https://gitee.com/heimenkyou/water-hair'
+	};
+	
+	const url = urls[platform];
+	if (!url) return;
+	
+	// #ifdef APP-PLUS
+	plus.runtime.openURL(url);
+	// #endif
+	
+	// #ifdef H5
+	window.open(url, '_blank');
+	// #endif
 };
 
 onMounted(() => {
@@ -579,5 +616,66 @@ onShow(() => {
 	color: #666;
 	display: block;
 	line-height: 1.8;
+}
+
+/* 源码地址板块 */
+.source-section {
+	background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(6, 182, 212, 0.05) 100%);
+	border-radius: 8px;
+	padding: 12px;
+	margin-top: 12px;
+}
+
+.source-title {
+	font-size: 14px;
+	font-weight: 600;
+	color: #333;
+	display: block;
+	margin-bottom: 6px;
+	text-align: center;
+}
+
+.source-hint {
+	font-size: 12px;
+	color: #999;
+	display: block;
+	text-align: center;
+	margin-bottom: 12px;
+}
+
+.source-links {
+	display: flex;
+	justify-content: center;
+	gap: 12px;
+}
+
+.source-link {
+	flex: 1;
+	max-width: 120px;
+	background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+	border-radius: 8px;
+	padding: 10px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+	box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
+	transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.source-link:active {
+	transform: scale(0.95);
+	box-shadow: 0 1px 3px rgba(16, 185, 129, 0.3);
+}
+
+.link-icon {
+	font-size: 24px;
+	display: block;
+}
+
+.link-icon {
+	width: 28px;
+	height: 28px;
+	display: block;
 }
 </style>

@@ -1,257 +1,121 @@
 # 我要喝水吹头发 💧💨
 
 <div align="center">
-
-**一款极简、快速的校园条码管理工具**
-
-*把被广告和层层菜单偷走的时间抢回来*
+**把被广告偷走的时间抢回来**
+<br>
+一款极简、极速的校园条码管理工具
 
 [![Uni-app](https://img.shields.io/badge/Framework-Uni--app-brightgreen)](https://uniapp.dcloud.io/)
 [![Vue 3](https://img.shields.io/badge/Vue-3.x-green)](https://vuejs.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
+[![Github](https://img.shields.io/badge/Download-Github-blue)](https://github.com/heimenkyou/water-hair/releases)
+[![Gitee](https://img.shields.io/badge/Download-Gitee-red)](https://gitee.com/heimenkyou/water-hair/releases)
 
 </div>
 
 ---
+## 📥 下载安装
 
-## 📖 项目背景
+国内推荐使用 **Gitee** 下载，速度更快且无需登录。
 
-这款应用诞生于对校园生活的深度观察：
-
-### 😤 现状痛点
-
-- **校园原版应用"多彩校园"**：启动慢、强制弹窗广告、关闭按钮极小
-- **操作繁琐**：条码需要手动展开，每次使用都要重复多个步骤
-- **体验糟糕**：广告加载时间甚至比使用时间还长
-
-### 🔍 替代方案的局限
-
-虽然可以使用**相册截图**来替代：
-- ✗ 相册查找慢
-- ✗ 有应用锁需要解锁
-- ✗ **最关键**：截图无法像原版应用那样**自动调高屏幕亮度**，导致扫码失败率高
-
-### 🚀 本应用使命
-
-**实现"开箱即用"**
-- ✅ 点开即是条码
-- ✅ 自动调至最高亮度
-- ✅ 左右滑动快速切换
-- ✅ 零广告、零等待
+| 平台 | 下载地址 | 说明 |
+| :--- | :--- | :--- |
+| **Gitee** | [🔴 点击前往下载](https://gitee.com/heimenkyou/water-hair/releases) | **国内推荐**，满速下载 |
+| **GitHub** | [🐙 点击前往下载](https://github.com/heimenkyou/water-hair/releases) | 最新版本首发地 |
 
 ---
 
-## ✨ 功能特性
-
-### 🎯 核心功能
-
-| 功能 | 说明 |
-|------|------|
-| 📱 **条码展示** | 全屏显示，支持多条码左右滑动切换 |
-| ☀️ **自动亮度** | 打开页面自动调至最高亮度，无需手动调节 |
-| 🎨 **清新主题** | 清新绿 + 现代蓝渐变配色，视觉舒适 |
-| 🔖 **默认条码** | 设置默认开屏条码，每次打开优先显示 |
-| 📝 **条码管理** | 添加、删除、重命名条码，简单直观 |
-| 💾 **本地存储** | 数据保存在本地，无需网络，隐私安全 |
-| 🎭 **空状态引导** | 首次使用时友好的引导流程 |
-
-### 🎁 额外亮点
-
-- **极速启动**：纯原生组件，无第三方库，启动速度快
-- **隐私保护**：完全离线，所有数据仅存储在本地
-- **操作简单**：三步完成设置，老少皆宜
-- **UI设计**：现代化UI设计，精致美观
-
----
-
-## 🛠️ 技术栈
-
-- **框架**：[Uni-app](https://uniapp.dcloud.io/) (Vue 3 Composition API)
-- **平台**：Android
-- **存储**：LocalStorage（本地持久化）
-- **图片处理**：Base64 编码（APP）/ 临时路径（H5）
-- **样式**：原生 CSS
-
-### 核心 API 使用
-
-```javascript
-// 图片选择与上传
-uni.chooseImage()
-
-// 文件系统操作（Android）
-plus.io.resolveLocalFileSystemURL()
-
-// 屏幕亮度控制
-uni.setScreenBrightness({ value: 1 })
-
-// 本地数据存储
-uni.getStorageSync('barcodes')
-uni.setStorageSync('barcodes', data)
-```
-
----
-
-## 🚀 快速开始
-
-### 环境要求
-
-- Node.js 14+
-- HBuilderX（推荐）或 其他支持 Uni-app 的开发工具
-
-### 安装步骤
-
-1. **克隆项目**
-   ```bash
-   git clone https://github.com/heimenkyou/water-hair.git
-   cd water-hair
-   ```
-
-2. **安装依赖**
-   ```bash
-   npm install
-   ```
-
-3. **运行项目**
-   
-   - **方式一**：使用 HBuilderX
-     - 打开 HBuilderX
-     - 导入项目
-     - 运行 → 运行到手机或模拟器 → Android App
-
-   - **方式二**：命令行（需配置环境）
-     ```bash
-     npm run dev:app-android
-     ```
-
-4. **打包发布**
-   
-   - 打开 HBuilderX
-   - 导入项目
-   - 发行 → App-Android/iOS-云打包
-
----
-
-## 📱 使用说明
-
-### 第一次使用
-
-1. **安装应用**后首次打开
-2. 阅读并同意**隐私政策说明**
-3. 查看**空状态引导卡片**，了解使用流程
-
-### 添加条码
-
-1. 前往**多彩校园**截取饮水机或吹风机的条码
-   > 💡 建议先展开条码再截图，确保图片清晰
-2. 点击应用底部的**"设置"**标签
-3. 点击**"+ 添加条码"**按钮
-4. 从相册选择刚才截取的条码图片
-5. 上传成功！可为条码自定义名称
-
-### 设置默认条码
-
-1. 在**设置页面**，找到想要设为默认的条码
-2. 点击条码**左上角的圆形单选框**
-3. 系统提示"已设为默认"
-4. 下次打开应用会优先显示该条码
-
-### 日常使用
-
-1. 口渴或需要吹头时，**直接打开应用**
-2. 应用自动调至**最高亮度**
-3. 将手机对准扫码器即可
-4. 如有多个条码，**左右滑动**切换
-
----
-
-## 📂 项目结构
-
-```
-我要喝水吹头发/
-├── pages/                      # 页面文件
-│   ├── viewer/                 # 条码展示页
-│   │   └── index.vue
-│   └── settings/               # 设置管理页
-│       └── index.vue
-├── static/                     # 静态资源
-│   └── logo.png
-├── androidPrivacy.json         # Android 隐私政策配置
-├── pages.json                  # 页面配置
-├── manifest.json               # 应用配置
-├── App.vue                     # 根组件
-├── main.js                     # 入口文件
-└── README.md                   # 项目说明
-```
-
----
-
-## 🎨 界面预览
-
-### 条码展示页
-- 全屏黑色背景，突出条码显示
-- 底部显示条码名称
-- 自动亮度提示："✨ 已为您自动调整至最高亮度"
-
-### 设置管理页
-- 清新绿渐变头部
-- 条码列表卡片式展示
-- 左上角单选框设置默认条码
-- "关于本项目"板块
-
-### 空状态引导
-- 三步走引导流程
-- 清晰的操作指引
-
----
-
-## 💡 设计理念
-
-1. **极简主义**：去除一切不必要的功能，专注核心需求
-2. **用户友好**：操作简单直观，无需学习成本
-3. **性能优先**：使用原生组件，启动速度快
-4. **隐私安全**：完全离线，不收集任何用户数据
-
----
-
-## 🤝 贡献指南
-
-欢迎提交 Issue 和 Pull Request！
-
-1. Fork 本项目
-2. 创建您的特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交您的更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 创建 Pull Request
-
----
-
-## 👨‍💻 开发者
-
-**👤 罗文彬** + **🤖 Claude 4.5** = **🚀 极速体验**
-
-> *"我厌倦了等待广告，于是和 AI 聊了一个下午，做出了这个应用。"*
-
-### 联系方式
-
-- **QQ**: 3209871721
-- **邮箱**: wenbin.lo@outlook.com
-
----
-
-## 📄 许可证
-
-本项目采用 [MIT License](LICENSE) 开源协议
-
----
-
-## ⭐ Star History
-
-如果这个项目对您有帮助，请给个 Star ⭐️ 支持一下！
-
----
+## 📸 界面预览
 
 <div align="center">
+  <table>
+    <tr>
+      <td align="center"><img src="https://img.luowb.cn/posts/2026/01/27/38aed1af3080a4872b61af182c1d1f89-条码页1.webp" width="100%"/></td>
+      <td align="center"><img src="https://img.luowb.cn/posts/2026/01/27/8f8c529a532d7e4c184c2c8e1e203ad7-条码页2.webp" width="100%"/></td>
+      <td align="center"><img src="https://img.luowb.cn/posts/2026/01/27/cca5436f4e5532d6b4c4aa9913b651fe-设置管理页1.webp" width="100%"/></td>
+      <td align="center"><img src="https://img.luowb.cn/posts/2026/01/27/a516ea9ddfe946bcf6db285c00ab63a8-设置管理页2.webp" width="100%"/></td>
+    </tr>
+  </table>
+</div>
 
-**Made with ❤️ for a better campus life**
+---
+
+## 💡 为什么要用这个？
+
+你可能习惯了忍受，但其实本可以更简单。
+
+### 😤 现状的痛点
+
+大部分同学每天都在经历这些折磨：
+
+* **启动慢**：在饮水机前排队，别人水都接完了，你的 App 还没打开。
+* **强制弹窗**：广告关闭按钮设计得极小，不仅浪费时间，还容易误触。
+* **操作繁琐**：条码默认折叠，每次使用都要重复「点击-展开」的机械动作。
+
+### 🔍 截图方案的致命缺陷
+
+有些聪明的同学尝试用**截图**替代，但依然不够完美：
+
+* ❌ **查找麻烦**：相册照片多了，找一张截图要翻半天。
+* ❌ **隐私锁限制**：很多同学相册有应用锁，解锁又多一步。
+* ❌ **最关键的问题**：截图**无法自动调高屏幕亮度**。在光线昏暗的地方，扫码器经常无法识别屏幕上的截图，导致你不得不手动去拉状态栏调亮度，非常狼狈。
+
+### 🚀 我们的使命
+
+**把简单还给生活。**
+点开即是高亮条码，扫完即走。零广告，零等待，这才是工具该有的样子。
+
+### ⚔️ 三种方案对比
+
+| 维度 | 🐢 多彩校园 (原版) | 🖼️ 相册截图法 | ⚡ 本应用 (WaterHair) |
+| :--- | :--- | :--- | :--- |
+| **启动速度** | **极慢** (需等待加载与广告) | **慢** (需翻找/解锁) | **🚀 秒开** |
+| **广告干扰** | **严重** (弹窗+倒计时) | 无 | **无** |
+| **屏幕亮度** | 一般 | **❌ 无法自动变亮** | **☀️ 自动最高亮度** |
+| **操作步骤** | 5步+ (点击/关广告/展开) | 3步+ (点击/找相册/调亮度) | **1步 (点开即扫)** |
+| **扫码成功率**| 高 | **一般** (因亮度不足) | **高** |
+
+---
+
+## 📖 极简使用指南
+
+无需复杂设置，只需三步：
+
+1.  **截图**：去原版 App 把你的饮水机/吹风机条码截图保存。
+2.  **导入**：打开本 App，点击底部「设置」->「添加条码」，选择刚才的截图。
+3.  **使用**：下次口渴，点开本 App 直接扫码！(支持左右滑动切换多个条码)
+
+---
+
+## 🛠️ 技术栈 (For Developers)
+
+如果你对源码感兴趣，本项目基于 **Uni-app (Vue3)** 开发。
+
+* **框架**: Uni-app + Vue 3 Composition API
+* **平台**: Android (可轻松适配 iOS)
+* **存储**: LocalStorage (纯本地持久化)
+* **特性**: 原生亮度控制 API、沉浸式 UI
+
+### 本地运行
+
+```bash
+git clone https://github.com/heimenkyou/water-hair.git
+npm install
+# 推荐通过 HBuilderX 导入项目运行到 Android 基座
+```
+
+------
+
+## 👨‍💻 关于
+
+**👤 罗文彬** + **🤖 Claude 4.5**
+
+*"我厌倦了等待广告，于是和 AI 聊了一个晚上，做出了这个应用。"*
+
+- **联系**: wenbin.lo@outlook.com
+- **协议**: [MIT License](LICENSE) (您可以随意修改和分发)
+
+<div align="center">
+<strong>Made with ❤️ for a better campus life</strong>
 
 </div>
