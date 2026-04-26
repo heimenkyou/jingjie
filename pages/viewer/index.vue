@@ -59,7 +59,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 import { onShow, onHide } from '@dcloudio/uni-app';
 
 const barcodes = ref([]);
@@ -99,10 +99,6 @@ const goToSettings = () => {
 		url: '/pages/settings/index'
 	});
 };
-
-onMounted(() => {
-	loadBarcodes();
-});
 
 onShow(() => {
 	// 设置屏幕亮度为最大

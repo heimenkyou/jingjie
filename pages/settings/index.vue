@@ -19,7 +19,7 @@
 				</view>
 				<view class="barcode-info" @click="renameBarcode(index)">
 					<text class="barcode-name">{{ item.name || '条码 ' + (index + 1) }}</text>
-					<text class="barcode-hint">{{ defaultBarcodeId === item.id ? '点击编辑名称\n✨ 默认开屏' : '点击编辑名称' }}</text>
+					<text>{{ defaultBarcodeId === item.id ? '点击编辑名称\n✨ 默认开屏' : '点击编辑名称' }}</text>
 				</view>
 				<view class="barcode-actions">
 					<button class="btn-delete" @click="deleteBarcode(index)">删除</button>
@@ -101,7 +101,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 
 const barcodes = ref([]);
@@ -315,10 +315,6 @@ const openSourceLink = (platform) => {
 	// #endif
 };
 
-onMounted(() => {
-	loadBarcodes();
-});
-
 onShow(() => {
 	// 每次显示时重新加载，以防从其他页面返回
 	loadBarcodes();
@@ -507,13 +503,6 @@ onShow(() => {
 	margin-bottom: 4px;
 }
 
-.desc {
-	font-size: 12px;
-	color: #999;
-	display: block;
-	text-align: center;
-}
-
 /* 关于本项目 */
 .about-section {
 	background: rgba(255, 255, 255, 0.6);
@@ -666,11 +655,6 @@ onShow(() => {
 .source-link:active {
 	transform: scale(0.95);
 	box-shadow: 0 1px 3px rgba(16, 185, 129, 0.3);
-}
-
-.link-icon {
-	font-size: 24px;
-	display: block;
 }
 
 .link-icon {
