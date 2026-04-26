@@ -15,8 +15,6 @@
 			"style": {
 				"navigationBarTitleText": "驿站",
 				"navigationStyle": "custom",
-				"enablePullDownRefresh": true,
-				"backgroundTextStyle": "dark",
 				"app-plus": {
 					"titleNView": false
 				}

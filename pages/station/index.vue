@@ -31,12 +31,16 @@
 				@error="handleWebviewError"
 			></web-view>
 		</view>
+
+		<view class="brightness-tip" v-if="showBrightnessTip">
+			<text class="tip-text">✨ 已为您自动调整至最高亮度</text>
+		</view>
 	</view>
 </template>
 
 <script setup>
 import { computed, getCurrentInstance, nextTick, ref } from 'vue';
-import { onShow, onHide, onPullDownRefresh } from '@dcloudio/uni-app';
+import { onShow, onHide } from '@dcloudio/uni-app';
 
 const HEADER_HEIGHT = 44;
 const systemInfo = uni.getSystemInfoSync();
@@ -64,7 +68,10 @@ const stationPages = [
 const currentKey = ref('identity');
 const webviewSrc = ref(stationPages[0].url);
 const isLoading = ref(true);
+const showBrightnessTip = ref(false);
 const instance = getCurrentInstance();
+const lastAppliedDefaultKey = ref('');
+let brightnessTipTimer = null;
 
 const currentPage = computed(() => {
 	return stationPages.find(item => item.key === currentKey.value) || stationPages[0];
@@ -127,29 +134,45 @@ const handleWebviewError = () => {
 	isLoading.value = false;
 	uni.stopPullDownRefresh();
 	uni.showToast({
-		title: '页面加载失败，下拉可刷新',
+		title: '页面加载失败，点击刷新重试',
 		icon: 'none'
 	});
 };
 
 onShow(() => {
+	const defaultKey = uni.getStorageSync('stationDefaultPage') || 'identity';
+	if (defaultKey !== lastAppliedDefaultKey.value && stationPages.some(item => item.key === defaultKey)) {
+		currentKey.value = defaultKey;
+		webviewSrc.value = currentPage.value.url;
+		isLoading.value = true;
+		lastAppliedDefaultKey.value = defaultKey;
+	}
+
 	// #ifdef APP-PLUS
 	uni.setScreenBrightness({
 		value: 1
 	});
 	// #endif
+
+	showBrightnessTip.value = true;
+	if (brightnessTipTimer) clearTimeout(brightnessTipTimer);
+	brightnessTipTimer = setTimeout(() => {
+		showBrightnessTip.value = false;
+	}, 3000);
 });
 
 onHide(() => {
+	if (brightnessTipTimer) {
+		clearTimeout(brightnessTipTimer);
+		brightnessTipTimer = null;
+	}
+	showBrightnessTip.value = false;
+
 	// #ifdef APP-PLUS
 	uni.setScreenBrightness({
 		value: 0.5
 	});
 	// #endif
-});
-
-onPullDownRefresh(() => {
-	reloadWebview();
 });
 </script>
 
@@ -281,5 +304,44 @@ onPullDownRefresh(() => {
 .station-webview {
 	width: 100%;
 	height: 100%;
+}
+
+.brightness-tip {
+	position: absolute;
+	bottom: 20px;
+	left: 50%;
+	z-index: 30;
+	transform: translateX(-50%);
+	background: rgba(16, 185, 129, 0.9);
+	padding: 8px 18px;
+	border-radius: 20px;
+	animation: fadeInOut 3s ease-in-out;
+}
+
+.tip-text {
+	font-size: 13px;
+	color: #fff;
+}
+
+@keyframes fadeInOut {
+	0% {
+		opacity: 0;
+		transform: translateX(-50%) translateY(10px);
+	}
+
+	15% {
+		opacity: 1;
+		transform: translateX(-50%) translateY(0);
+	}
+
+	85% {
+		opacity: 1;
+		transform: translateX(-50%) translateY(0);
+	}
+
+	100% {
+		opacity: 0;
+		transform: translateX(-50%) translateY(10px);
+	}
 }
 </style>
