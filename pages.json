@@ -11,6 +11,18 @@
 			}
 		},
 		{
+			"path": "pages/station/index",
+			"style": {
+				"navigationBarTitleText": "驿站",
+				"navigationStyle": "custom",
+				"enablePullDownRefresh": true,
+				"backgroundTextStyle": "dark",
+				"app-plus": {
+					"titleNView": false
+				}
+			}
+		},
+		{
 			"path": "pages/settings/index",
 			"style": {
 				"navigationBarTitleText": "设置管理"
@@ -34,6 +46,12 @@
 				"iconPath": "static/barcode-icon.png",
 				"selectedIconPath": "static/barcode-icon-active.png",
 				"text": "条码"
+			},
+			{
+				"pagePath": "pages/station/index",
+				"iconPath": "static/station-icon.png",
+				"selectedIconPath": "static/station-icon-active.png",
+				"text": "驿站"
 			},
 			{
 				"pagePath": "pages/settings/index",
