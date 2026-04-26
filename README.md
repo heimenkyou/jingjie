@@ -1,7 +1,7 @@
 # 净界 (JingJie) 💧💨⚡
 
 <div align="center">
-**把被广告偷走的时间抢回来**
+把被广告偷走的时间抢回来
 <br>
 一款极简校园效率工具：本地条码秒开 ✖️ 快递身份码直达
 
@@ -30,10 +30,19 @@
 <div align="center">
   <table>
     <tr>
-      <td align="center"><img src="https://img.luowb.cn/posts/2026/01/27/38aed1af3080a4872b61af182c1d1f89-条码页1.webp" width="100%"/></td>
-      <td align="center"><img src="https://img.luowb.cn/posts/2026/01/27/8f8c529a532d7e4c184c2c8e1e203ad7-条码页2.webp" width="100%"/></td>
-      <td align="center"><img src="https://img.luowb.cn/posts/2026/01/27/cca5436f4e5532d6b4c4aa9913b651fe-设置管理页1.webp" width="100%"/></td>
-      <td align="center"><img src="https://img.luowb.cn/posts/2026/01/27/a516ea9ddfe946bcf6db285c00ab63a8-设置管理页2.webp" width="100%"/></td>
+      <th align="center">📱 本地条码</th>
+      <th align="center">📦 快递驿站</th>
+      <th align="center">⚙️ 偏好设置</th>
+    </tr>
+    <tr>
+      <td align="center"><img src="https://img.luowb.cn/posts/2026/04/27/2d34f4bf59098113c41680d8c97f736c-条码页2.webp" width="100%"/></td>
+      <td align="center"><img src="https://img.luowb.cn/posts/2026/04/27/6c28dbc9b9c2947207a85e70b6f7fb1b-驿站页身份码.webp" width="100%"/></td>
+      <td align="center"><img src="https://img.luowb.cn/posts/2026/04/27/3ae7abe133ebb2b6ff02b1e55c9e0643-设置页管理页1.webp" width="100%"/></td>
+    </tr>
+    <tr>
+      <td align="center"><img src="https://img.luowb.cn/posts/2026/04/27/d69e4d58936200e53d49e7028102670f-条码页1.webp" width="100%"/></td>
+      <td align="center"><img src="https://img.luowb.cn/posts/2026/04/27/6984c10011a7824848bdc9781963a20f-驿站页首页.webp" width="100%"/></td>
+      <td align="center"><img src="https://img.luowb.cn/posts/2026/04/27/bb952dce5f4a6e18779390df44d8e82f-设置管理页2.webp" width="100%"/></td>
     </tr>
   </table>
 </div>
