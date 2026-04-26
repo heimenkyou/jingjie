@@ -1,15 +1,15 @@
-# 我要喝水吹头发 💧💨
+# 净界 (JingJie) 💧💨⚡
 
 <div align="center">
 **把被广告偷走的时间抢回来**
 <br>
-一款极简、极速的校园条码管理工具
+一款极简校园效率工具：本地条码秒开 ✖️ 快递身份码直达
 
 [![Uni-app](https://img.shields.io/badge/Framework-Uni--app-brightgreen)](https://uniapp.dcloud.io/)
 [![Vue 3](https://img.shields.io/badge/Vue-3.x-green)](https://vuejs.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
-[![Github](https://img.shields.io/badge/Download-Github-blue)](https://github.com/heimenkyou/water-hair/releases)
-[![Gitee](https://img.shields.io/badge/Download-Gitee-red)](https://gitee.com/heimenkyou/water-hair/releases)
+[![Github](https://img.shields.io/badge/Download-Github-blue)](https://github.com/heimenkyou/jingjie/releases)
+[![Gitee](https://img.shields.io/badge/Download-Gitee-red)](https://gitee.com/heimenkyou/jingjie/releases)
 
 </div>
 
@@ -20,8 +20,8 @@
 
 | 平台 | 下载地址 | 说明 |
 | :--- | :--- | :--- |
-| **Gitee** | [🔴 点击前往下载](https://gitee.com/heimenkyou/water-hair/releases) | **国内推荐**，满速下载 |
-| **GitHub** | [🐙 点击前往下载](https://github.com/heimenkyou/water-hair/releases) | 最新版本首发地 |
+| **Gitee** | [🔴 点击前往下载](https://gitee.com/heimenkyou/jingjie/releases) | **国内推荐**，满速下载 |
+| **GitHub** | [🐙 点击前往下载](https://github.com/heimenkyou/jingjie/releases) | 最新版本首发地 |
 
 ---
 
@@ -40,82 +40,48 @@
 
 ---
 
-## 💡 为什么要用这个？
+## 💡 解决什么痛点？
 
-你可能习惯了忍受，但其实本可以更简单。
+受够了校园 App 的 **启动慢、广告多、层级深**，以及相册截图扫码时 **屏幕太暗无法识别** 的尴尬。本应用主打：
 
-### 😤 现状的痛点
-
-大部分同学每天都在经历这些折磨：
-
-* **启动慢**：在饮水机前排队，别人水都接完了，你的 App 还没打开。
-* **强制弹窗**：广告关闭按钮设计得极小，不仅浪费时间，还容易误触。
-* **操作繁琐**：条码默认折叠，每次使用都要重复「点击-展开」的机械动作。
-
-### 🔍 截图方案的致命缺陷
-
-有些聪明的同学尝试用**截图**替代，但依然不够完美：
-
-* ❌ **查找麻烦**：相册照片多了，找一张截图要翻半天。
-* ❌ **隐私锁限制**：很多同学相册有应用锁，解锁又多一步。
-* ❌ **最关键的问题**：截图**无法自动调高屏幕亮度**。在光线昏暗的地方，扫码器经常无法识别屏幕上的截图，导致你不得不手动去拉状态栏调亮度，非常狼狈。
-
-### 🚀 我们的使命
-
-**把简单还给生活。**
-点开即是高亮条码，扫完即走。零广告，零等待，这才是工具该有的样子。
-
-### ⚔️ 三种方案对比
-
-| 维度 | 🐢 多彩校园 (原版) | 🖼️ 相册截图法 | ⚡ 本应用 (WaterHair) |
-| :--- | :--- | :--- | :--- |
-| **启动速度** | **极慢** (需等待加载与广告) | **慢** (需翻找/解锁) | **🚀 秒开** |
-| **广告干扰** | **严重** (弹窗+倒计时) | 无 | **无** |
-| **屏幕亮度** | 一般 | **❌ 无法自动变亮** | **☀️ 自动最高亮度** |
-| **操作步骤** | 5步+ (点击/关广告/展开) | 3步+ (点击/找相册/调亮度) | **1步 (点开即扫)** |
-| **扫码成功率**| 高 | **一般** (因亮度不足) | **高** |
+* 🪪 **本地条码**：将水机/吹风机截图存入，点开自动最高亮度，左右滑动切换。
+* 📦 **快递直达**：内置驿站 Web 容器，只需登录一次，以后打开直达淘宝身份码。
+* ⚡ **首选项设置**：支持将高频功能（如身份码）设为默认启动页，实现零点击秒开。
 
 ---
 
-## 📖 极简使用指南
+## 📖 快速上手
 
-无需复杂设置，只需三步：
-
-1.  **截图**：去原版 App 把你的饮水机/吹风机条码截图保存。
-2.  **导入**：打开本 App，点击底部「设置」->「添加条码」，选择刚才的截图。
-3.  **使用**：下次口渴，点开本 App 直接扫码！(支持左右滑动切换多个条码)
+* **配置条码**：在原版 App 截图 -> 在本应用「设置」中添加 -> 回首页使用。
+* **配置驿站**：切换至「驿站」Tab -> 登录淘宝账号 -> 后续直接出码。
 
 ---
 
-## 🛠️ 技术栈 (For Developers)
+## 🛠️ 技术栈
 
-如果你对源码感兴趣，本项目基于 **Uni-app (Vue3)** 开发。
+本项目基于 **Uni-app (Vue3)** 开发。
 
 * **框架**: Uni-app + Vue 3 Composition API
 * **平台**: Android (可轻松适配 iOS)
-* **存储**: LocalStorage (纯本地持久化)
-* **特性**: 原生亮度控制 API、沉浸式 UI
 
 ### 本地运行
 
 ```bash
-git clone https://github.com/heimenkyou/water-hair.git
-npm install
-# 推荐通过 HBuilderX 导入项目运行到 Android 基座
+git clone https://github.com/heimenkyou/jingjie.git
+# 使用 HBuilderX 导入项目
+# 运行 -> 运行到手机或模拟器 -> 运行到 Android App 基座
 ```
 
 ------
 
-## 👨‍💻 关于
+## 👨‍💻 开发者
 
-**👤 罗文彬** + **🤖 Claude 4.5**
-
-*"我厌倦了等待广告，于是和 AI 聊了一个晚上，做出了这个应用。"*
+**👤 罗文彬** + **🤖 AI 协作**
 
 - **联系**: wenbin.lo@outlook.com
-- **协议**: [MIT License](LICENSE) (您可以随意修改和分发)
+- **协议**: [MIT License](LICENSE)
 
 <div align="center">
-<strong>Made with ❤️ for a better campus life</strong>
+<strong>Made with ❤️ for a better life</strong>
 
 </div>

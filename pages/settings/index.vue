@@ -108,10 +108,10 @@
 				</view>
 
 				<view class="contact-section">
-					<text class="contact-title">📧 联系方式</text>
-					<text class="contact-item">QQ: 3209871721</text>
-					<text class="contact-item">微信: heimenkyou（备注来源）</text>
-					<text class="contact-item">邮箱: wenbin.lo@outlook.com</text>
+					<text class="contact-title">📧 联系方式（点击跳转）</text>
+					<text class="contact-item contact-link" @click="openContactLink('qq')">QQ: 3209871721</text>
+					<text class="contact-item contact-link" @click="copyWechat">微信: heimenkyou（备注来源）</text>
+					<text class="contact-item contact-link" @click="openContactLink('email')">邮箱: wenbin.lo@outlook.com</text>
 				</view>
 
 				<view class="source-section">
@@ -172,6 +172,13 @@ const stationDefaultOptions = [
 		desc: '可作为备用入口'
 	}
 ];
+
+const contactLinks = {
+	qq: 'https://qm.qq.com/q/Hr6wc28uCO',
+	email: 'mailto:wenbin.lo@outlook.com'
+};
+
+const wechatId = 'heimenkyou';
 
 /**
  * 从本地存储加载条码数据
@@ -384,14 +391,39 @@ const renameBarcode = (index) => {
 	});
 };
 
+const openContactLink = (type) => {
+	const url = contactLinks[type];
+	if (!url) return;
+
+	// #ifdef APP-PLUS
+	plus.runtime.openURL(url);
+	// #endif
+
+	// #ifdef H5
+	window.location.href = url;
+	// #endif
+};
+
+const copyWechat = () => {
+	uni.setClipboardData({
+		data: wechatId,
+		success: () => {
+			uni.showToast({
+				title: '微信号已复制',
+				icon: 'success'
+			});
+		}
+	});
+};
+
 /**
  * 打开源码链接
  * @param {string} platform - 平台类型 ('github' 或 'gitee')
  */
 const openSourceLink = (platform) => {
 	const urls = {
-		github: 'https://github.com/heimenkyou/water-hair',
-		gitee: 'https://gitee.com/heimenkyou/water-hair'
+		github: 'https://github.com/heimenkyou/jingjie',
+		gitee: 'https://gitee.com/heimenkyou/jingjie'
 	};
 	
 	const url = urls[platform];
@@ -802,6 +834,10 @@ onShow(() => {
 	color: #666;
 	display: block;
 	line-height: 1.8;
+}
+
+.contact-link {
+	color: #10b981;
 }
 
 /* 源码地址板块 */
