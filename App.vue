@@ -1,4 +1,6 @@
 <script>
+	import { flushWebviewCookies } from '@/utils/webviewCookies.js';
+
 	export default {
 		onLaunch() {
 			const startupTab = uni.getStorageSync('startupTab') || 'barcode';
@@ -9,6 +11,9 @@
 					url: '/pages/station/index'
 				});
 			}, 0);
+		},
+		onHide() {
+			flushWebviewCookies();
 		}
 	}
 </script>

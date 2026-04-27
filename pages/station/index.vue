@@ -41,6 +41,7 @@
 <script setup>
 import { computed, getCurrentInstance, nextTick, ref } from 'vue';
 import { onShow, onHide } from '@dcloudio/uni-app';
+import { flushWebviewCookies } from '@/utils/webviewCookies.js';
 
 const HEADER_HEIGHT = 44;
 const systemInfo = uni.getSystemInfoSync();
@@ -107,6 +108,7 @@ const switchPage = (key) => {
 
 const reloadWebview = () => {
 	isLoading.value = true;
+	flushWebviewCookies();
 
 	// #ifdef APP-PLUS
 	if (typeof uni.createWebviewContext === 'function') {
@@ -127,6 +129,7 @@ const reloadWebview = () => {
 
 const handleWebviewLoad = () => {
 	isLoading.value = false;
+	flushWebviewCookies();
 	uni.stopPullDownRefresh();
 };
 
@@ -162,6 +165,8 @@ onShow(() => {
 });
 
 onHide(() => {
+	flushWebviewCookies();
+
 	if (brightnessTipTimer) {
 		clearTimeout(brightnessTipTimer);
 		brightnessTipTimer = null;
