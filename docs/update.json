@@ -1,0 +1,9 @@
+{
+  "versionName": "v2.0.0",
+  "versionCode": 200,
+  "title": "v2.0.0 - 全新进化：从“喝水”到“净界”",
+  "log": "✨ 重大更新\n\n能取件了：新增快递出库直达功能，支持淘宝身份码、驿站首页秒开。\n应用名称更名为「净界」。\n重构包名为 cn.luowb.jingjie。",
+  "url": "https://jingjie.luowb.cn/",
+  "date": "2026-04-27",
+  "force": false
+}

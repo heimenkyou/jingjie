@@ -89,6 +89,11 @@
 				<text class="info-text">4. 自动亮：进页面自动最亮，扫完切出自动恢复。</text>
 			</view>
 
+			<view class="update-section">
+				<text class="update-title">版本更新</text>
+				<button class="btn-check-update" @click="handleCheckUpdate">检查更新</button>
+			</view>
+
 			<!-- 关于本项目 -->
 			<view class="about-section">
 				<text class="about-title">关于项目</text>
@@ -136,6 +141,7 @@
 <script setup>
 import { ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
+import { checkForUpdate } from '@/utils/updateChecker.js';
 
 const barcodes = ref([]);
 const defaultBarcodeId = ref('');
@@ -416,6 +422,13 @@ const copyWechat = () => {
 	});
 };
 
+const handleCheckUpdate = () => {
+	checkForUpdate({
+		silent: false,
+		force: true
+	});
+};
+
 /**
  * 打开源码链接
  * @param {string} platform - 平台类型 ('github' 或 'gitee')
@@ -624,6 +637,38 @@ onShow(() => {
 	display: block;
 	line-height: 1.8;
 	margin-bottom: 4px;
+}
+
+.update-section {
+	margin-bottom: 15px;
+	padding: 15px;
+	background-color: #fff;
+	border-radius: 8px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.update-title {
+	font-size: 14px;
+	font-weight: bold;
+	color: #333;
+	display: block;
+	margin-bottom: 10px;
+}
+
+.btn-check-update {
+	width: 100%;
+	height: 40px;
+	line-height: 40px;
+	margin: 0;
+	padding: 0;
+	border-radius: 8px;
+	background: rgba(16, 185, 129, 0.08);
+	color: #10b981;
+	font-size: 14px;
+}
+
+.btn-check-update::after {
+	border: none;
 }
 
 .preference-section {
