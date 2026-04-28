@@ -1,5 +1,7 @@
 <template>
 	<view class="content">
+		<GlobalNoticeBar :top="12" />
+
 		<view class="header">
 			<text class="title">设置管理</text>
 			<text class="subtitle">下方有使用说明</text>
@@ -94,6 +96,12 @@
 				<button class="btn-check-update" @click="handleCheckUpdate">检查更新</button>
 			</view>
 
+			<view class="update-section">
+				<text class="update-title">驿站缓存</text>
+				<text class="update-desc">覆盖升级后若驿站页出现空白块、遮挡或登录异常，可主动清理一次。</text>
+				<button class="btn-check-update btn-clear-cache" @click="handleClearStationCache">清理驿站缓存</button>
+			</view>
+
 			<!-- 关于本项目 -->
 			<view class="about-section">
 				<text class="about-title">关于项目</text>
@@ -141,7 +149,9 @@
 <script setup>
 import { ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
+import GlobalNoticeBar from '@/components/GlobalNoticeBar.vue';
 import { checkForUpdate } from '@/utils/updateChecker.js';
+import { clearWebviewSiteData } from '@/utils/webviewCookies.js';
 
 const barcodes = ref([]);
 const defaultBarcodeId = ref('');
@@ -429,6 +439,23 @@ const handleCheckUpdate = () => {
 	});
 };
 
+const handleClearStationCache = () => {
+	uni.showModal({
+		title: '清理驿站缓存',
+		content: '这会清掉驿站 WebView 的站点缓存和登录态，不会删除条码图片和当前设置。是否继续？',
+		success: (res) => {
+			if (!res.confirm) return;
+
+			clearWebviewSiteData();
+			uni.showToast({
+				title: '已清理，请重新进入驿站页',
+				icon: 'none',
+				duration: 1800
+			});
+		}
+	});
+};
+
 /**
  * 打开源码链接
  * @param {string} platform - 平台类型 ('github' 或 'gitee')
@@ -464,6 +491,7 @@ onShow(() => {
 	flex-direction: column;
 	min-height: 100vh;
 	background-color: #f5f5f5;
+	position: relative;
 }
 
 .header {
@@ -669,6 +697,19 @@ onShow(() => {
 
 .btn-check-update::after {
 	border: none;
+}
+
+.update-desc {
+	font-size: 12px;
+	line-height: 1.5;
+	color: #888;
+	display: block;
+	margin-bottom: 10px;
+}
+
+.btn-clear-cache {
+	background: rgba(245, 158, 11, 0.12);
+	color: #d97706;
 }
 
 .preference-section {

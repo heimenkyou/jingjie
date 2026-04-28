@@ -1,5 +1,7 @@
 <template>
 	<view class="container">
+		<GlobalNoticeBar :top="16" />
+
 		<swiper class="swiper" :current="currentIndex" :indicator-dots="barcodes.length > 1" :autoplay="false"
 			:duration="300" indicator-color="rgba(255,255,255,0.3)" indicator-active-color="#10b981">
 			<swiper-item v-for="(item, index) in barcodes" :key="item.id">
@@ -61,6 +63,7 @@
 <script setup>
 import { ref } from 'vue';
 import { onShow, onHide } from '@dcloudio/uni-app';
+import GlobalNoticeBar from '@/components/GlobalNoticeBar.vue';
 
 const barcodes = ref([]);
 const showBrightnessTip = ref(false);
@@ -139,6 +142,7 @@ onHide(() => {
 	height: 100vh;
 	width: 100vw;
 	background-color: #000;
+	position: relative;
 }
 
 .swiper {

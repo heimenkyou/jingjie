@@ -21,6 +21,8 @@
 			</view>
 		</view>
 
+		<GlobalNoticeBar :top="headerTotalHeight + 8" :z-index="35" />
+
 		<!-- #ifdef APP-PLUS -->
 		<view class="native-webview-shell" :style="webShellStyle"></view>
 		<!-- #endif -->
@@ -47,6 +49,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { onBackPress, onHide, onLoad, onReady, onShow, onUnload } from '@dcloudio/uni-app';
+import GlobalNoticeBar from '@/components/GlobalNoticeBar.vue';
 import { flushWebviewCookies } from '@/utils/webviewCookies.js';
 
 const HEADER_HEIGHT = 44;
