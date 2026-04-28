@@ -16,10 +16,12 @@
 			</swiper-item>
 		</swiper>
 
+		<!-- #ifndef APP-PLUS -->
 		<!-- 亮度提示 -->
 		<view class="brightness-tip" v-if="barcodes.length > 0 && showBrightnessTip">
 			<text class="tip-text">✨ 已为您自动调整至最高亮度</text>
 		</view>
+		<!-- #endif -->
 
 		<!-- 引导卡片 - 空状态 -->
 		<view class="onboarding-overlay" v-if="barcodes.length === 0">
@@ -72,6 +74,7 @@ import GlobalNoticeBar from '@/components/GlobalNoticeBar.vue';
 const barcodes = ref([]);
 const showBrightnessTip = ref(false);
 const currentIndex = ref(0);
+let brightnessTipTimer = null;
 
 /**
  * 从本地存储加载条码数据
@@ -107,6 +110,25 @@ const goToSettings = () => {
 	});
 };
 
+const showBrightnessNotice = () => {
+	// #ifdef APP-PLUS
+	if (typeof plus !== 'undefined' && plus.nativeUI?.toast) {
+		plus.nativeUI.toast('✨ 已为您自动调整至最高亮度', {
+			verticalAlign: 'bottom'
+		});
+		return;
+	}
+	// #endif
+
+	showBrightnessTip.value = true;
+	if (brightnessTipTimer) {
+		clearTimeout(brightnessTipTimer);
+	}
+	brightnessTipTimer = setTimeout(() => {
+		showBrightnessTip.value = false;
+	}, 3000);
+};
+
 onShow(() => {
 	// 设置屏幕亮度为最大
 	// #ifdef APP-PLUS
@@ -118,16 +140,19 @@ onShow(() => {
 	// 每次显示时重新加载数据
 	loadBarcodes();
 
-	// 显示亮度提示（淡入淡出）
+	// 显示亮度提示
 	if (barcodes.value.length > 0) {
-		showBrightnessTip.value = true;
-		setTimeout(() => {
-			showBrightnessTip.value = false;
-		}, 3000);
+		showBrightnessNotice();
 	}
 });
 
 onHide(() => {
+	if (brightnessTipTimer) {
+		clearTimeout(brightnessTipTimer);
+		brightnessTipTimer = null;
+	}
+	showBrightnessTip.value = false;
+
 	// 恢复系统默认亮度
 	// #ifdef APP-PLUS
 	uni.setScreenBrightness({

@@ -2,8 +2,8 @@
 	<view class="notice-bar" v-if="visibleNotice" :style="barStyle">
 		<view class="notice-main" @click="handleNoticeClick">
 			<text class="notice-tag" :class="`notice-tag-${visibleNotice.level || 'info'}`">公告</text>
-			<view class="notice-marquee" ref="marqueeRef">
-				<view class="notice-track" ref="trackRef" :style="trackStyle">
+			<view class="notice-marquee">
+				<view class="notice-track" :style="trackStyle">
 					<text class="notice-text">{{ visibleNotice.content }}</text>
 				</view>
 			</view>
@@ -19,9 +19,9 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
+import { computed, getCurrentInstance, nextTick, onBeforeUnmount, ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
-import { advanceNoticePlayback, dismissGlobalNotice, getNoticePlaybackState, loadGlobalNotices } from '@/utils/notices.js';
+import { dismissGlobalNotice, loadGlobalNotices, subscribeNoticePlayback, syncNoticePlayback } from '@/utils/notices.js';
 
 const props = defineProps({
 	bottom: {
@@ -36,10 +36,13 @@ const props = defineProps({
 
 const notices = ref([]);
 const currentIndex = ref(0);
-const marqueeRef = ref(null);
-const trackRef = ref(null);
 const trackStyle = ref({});
-let playbackTimer = null;
+const playbackState = ref({
+	index: 0,
+	startedAt: 0,
+	durationMs: 5000
+});
+let unsubscribePlayback = null;
 
 const barStyle = computed(() => ({
 	bottom: typeof props.bottom === 'number' ? `${props.bottom}px` : props.bottom,
@@ -51,23 +54,9 @@ const visibleNotice = computed(() => {
 	return notices.value[currentIndex.value] || notices.value[0];
 });
 
-const stopPlayback = () => {
-	if (playbackTimer) {
-		clearTimeout(playbackTimer);
-		playbackTimer = null;
-	}
-};
-
-const scheduleNextNotice = (delayMs) => {
-	stopPlayback();
-	playbackTimer = setTimeout(() => {
-		currentIndex.value = advanceNoticePlayback(notices.value);
-		startPlayback();
-	}, delayMs);
-};
+const instance = getCurrentInstance();
 
 const startPlayback = async () => {
-	stopPlayback();
 	if (!visibleNotice.value) return;
 
 	trackStyle.value = {
@@ -76,28 +65,69 @@ const startPlayback = async () => {
 	};
 	await nextTick();
 
-	const marqueeWidth = marqueeRef.value?.$el?.offsetWidth || marqueeRef.value?.offsetWidth || 0;
-	const trackWidth = trackRef.value?.$el?.offsetWidth || trackRef.value?.offsetWidth || 0;
+	const elapsedMs = Math.max(0, Date.now() - (playbackState.value.startedAt || 0));
+	const query = uni.createSelectorQuery().in(instance?.proxy);
+	const rects = await new Promise((resolve) => {
+		query
+			.select('.notice-marquee')
+			.boundingClientRect()
+			.select('.notice-track')
+			.boundingClientRect()
+			.exec((res) => resolve(res || []));
+	});
+
+	const marqueeWidth = rects?.[0]?.width || 0;
+	const trackWidth = rects?.[1]?.width || 0;
 	const overflowWidth = Math.max(0, trackWidth - marqueeWidth);
 
 	if (!overflowWidth) {
-		scheduleNextNotice(notices.value.length > 1 ? 5000 : 12000);
+		trackStyle.value = {
+			transform: 'translate3d(0, 0, 0)',
+			transition: 'none'
+		};
 		return;
 	}
 
 	const holdBeforeMs = 1200;
 	const holdAfterMs = 1000;
 	const pixelsPerSecond = 24;
-	const scrollDurationMs = Math.max(6000, Math.round((overflowWidth / pixelsPerSecond) * 1000));
+	const scrollDurationMs = Math.max(
+		6000,
+		playbackState.value.durationMs - holdBeforeMs - holdAfterMs,
+		Math.round((overflowWidth / pixelsPerSecond) * 1000)
+	);
+	const scrollStartedAt = holdBeforeMs;
+	const scrollEndedAt = holdBeforeMs + scrollDurationMs;
 
-	playbackTimer = setTimeout(() => {
+	if (elapsedMs <= scrollStartedAt) {
+		trackStyle.value = {
+			transform: 'translate3d(0, 0, 0)',
+			transition: 'none'
+		};
+		return;
+	}
+
+	if (elapsedMs >= scrollEndedAt) {
 		trackStyle.value = {
 			transform: `translate3d(-${overflowWidth}px, 0, 0)`,
-			transition: `transform ${scrollDurationMs}ms linear`
+			transition: 'none'
 		};
+		return;
+	}
 
-		scheduleNextNotice(scrollDurationMs + holdAfterMs);
-	}, holdBeforeMs);
+	const scrolledRatio = (elapsedMs - scrollStartedAt) / scrollDurationMs;
+	const currentOffset = overflowWidth * scrolledRatio;
+	const remainingDurationMs = Math.max(16, scrollEndedAt - elapsedMs);
+
+	trackStyle.value = {
+		transform: `translate3d(-${currentOffset}px, 0, 0)`,
+		transition: 'none'
+	};
+	await nextTick();
+	trackStyle.value = {
+		transform: `translate3d(-${overflowWidth}px, 0, 0)`,
+		transition: `transform ${remainingDurationMs}ms linear`
+	};
 };
 
 const refreshNotices = async () => {
@@ -105,12 +135,13 @@ const refreshNotices = async () => {
 	if (!payload.globalEnable) {
 		notices.value = [];
 		trackStyle.value = {};
-		stopPlayback();
 		return;
 	}
 
 	notices.value = payload.items || [];
-	currentIndex.value = getNoticePlaybackState(notices.value).index;
+	const state = syncNoticePlayback(notices.value);
+	playbackState.value = state;
+	currentIndex.value = state.index;
 	await nextTick();
 	startPlayback();
 };
@@ -153,8 +184,17 @@ onShow(() => {
 	refreshNotices();
 });
 
+unsubscribePlayback = subscribeNoticePlayback((state) => {
+	playbackState.value = state;
+	currentIndex.value = state.index;
+	startPlayback();
+});
+
 onBeforeUnmount(() => {
-	stopPlayback();
+	if (unsubscribePlayback) {
+		unsubscribePlayback();
+		unsubscribePlayback = null;
+	}
 });
 </script>
 

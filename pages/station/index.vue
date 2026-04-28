@@ -42,9 +42,11 @@
 		</view>
 		<!-- #endif -->
 
+		<!-- #ifndef APP-PLUS -->
 		<view class="brightness-tip" v-if="showBrightnessTip">
 			<text class="tip-text">✨ 已为您自动调整至最高亮度</text>
 		</view>
+		<!-- #endif -->
 	</view>
 </template>
 
@@ -57,6 +59,7 @@ import GlobalNoticeBar from '@/components/GlobalNoticeBar.vue';
 import { flushWebviewCookies } from '@/utils/webviewCookies.js';
 
 const HEADER_HEIGHT = 44;
+const NOTICE_BAR_HEIGHT = 32;
 const systemInfo = uni.getSystemInfoSync();
 const statusBarHeight = systemInfo.statusBarHeight || 0;
 const headerTotalHeight = statusBarHeight + HEADER_HEIGHT;
@@ -124,7 +127,7 @@ const webShellStyle = computed(() => ({
 
 const fallbackWebviewStyles = computed(() => ({
 	top: `${headerTotalHeight}px`,
-	bottom: '32px',
+	bottom: '0px',
 	progress: {
 		color: '#10b981'
 	}
@@ -147,6 +150,15 @@ const restoreBrightness = () => {
 };
 
 const showBrightnessNotice = () => {
+	// #ifdef APP-PLUS
+	if (typeof plus !== 'undefined' && plus.nativeUI?.toast) {
+		plus.nativeUI.toast('✨ 已为您自动调整至最高亮度', {
+			verticalAlign: 'bottom'
+		});
+		return;
+	}
+	// #endif
+
 	showBrightnessTip.value = true;
 	if (brightnessTipTimer) clearTimeout(brightnessTipTimer);
 	brightnessTipTimer = setTimeout(() => {
@@ -178,7 +190,7 @@ const getChildWebviewId = (key) => {
 const getChildWebviewStyle = () => {
 	return {
 		top: `${headerTotalHeight}px`,
-		bottom: '32px',
+		bottom: `${NOTICE_BAR_HEIGHT}px`,
 		left: '0px',
 		right: '0px',
 		progress: {
@@ -582,7 +594,7 @@ onBackPress((options) => {
 
 .brightness-tip {
 	position: absolute;
-	bottom: 20px;
+	bottom: 56px;
 	left: 50%;
 	z-index: 30;
 	transform: translateX(-50%);
