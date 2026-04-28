@@ -21,16 +21,22 @@
 			</view>
 		</view>
 
+		<!-- #ifdef APP-PLUS -->
+		<view class="native-webview-shell" :style="webShellStyle"></view>
+		<!-- #endif -->
+
+		<!-- #ifndef APP-PLUS -->
 		<view class="web-shell" :style="webShellStyle">
 			<web-view
-				id="stationWebview"
+				id="stationWebviewFallback"
 				class="station-webview"
-				:src="webviewSrc"
-				:webview-styles="webviewStyles"
-				@load="handleWebviewLoad"
-				@error="handleWebviewError"
+				:src="fallbackSrc"
+				:webview-styles="fallbackWebviewStyles"
+				@load="handleFallbackLoad"
+				@error="handleFallbackError"
 			></web-view>
 		</view>
+		<!-- #endif -->
 
 		<view class="brightness-tip" v-if="showBrightnessTip">
 			<text class="tip-text">✨ 已为您自动调整至最高亮度</text>
@@ -39,8 +45,8 @@
 </template>
 
 <script setup>
-import { computed, getCurrentInstance, nextTick, ref } from 'vue';
-import { onShow, onHide } from '@dcloudio/uni-app';
+import { computed, ref } from 'vue';
+import { onBackPress, onHide, onLoad, onReady, onShow, onUnload } from '@dcloudio/uni-app';
 import { flushWebviewCookies } from '@/utils/webviewCookies.js';
 
 const HEADER_HEIGHT = 44;
@@ -66,16 +72,32 @@ const stationPages = [
 	}
 ];
 
-const currentKey = ref('identity');
-const webviewSrc = ref(stationPages[0].url);
+const getPageByKey = (key) => {
+	return stationPages.find(item => item.key === key) || stationPages[0];
+};
+
+const getStoredDefaultKey = () => {
+	const key = uni.getStorageSync('stationDefaultPage') || 'identity';
+	return stationPages.some(item => item.key === key) ? key : 'identity';
+};
+
+const currentKey = ref(getStoredDefaultKey());
 const isLoading = ref(true);
 const showBrightnessTip = ref(false);
-const instance = getCurrentInstance();
 const lastAppliedDefaultKey = ref('');
+const fallbackSrc = ref(getPageByKey(currentKey.value).url);
+
 let brightnessTipTimer = null;
 
+// #ifdef APP-PLUS
+const childWebviews = new Map();
+const pageLoadedSet = new Set();
+const pageCanBackMap = new Map();
+let parentWebview = null;
+// #endif
+
 const currentPage = computed(() => {
-	return stationPages.find(item => item.key === currentKey.value) || stationPages[0];
+	return getPageByKey(currentKey.value);
 });
 
 const currentLabel = computed(() => {
@@ -91,7 +113,7 @@ const webShellStyle = computed(() => ({
 	top: `${headerTotalHeight}px`
 }));
 
-const webviewStyles = {
+const fallbackWebviewStyles = {
 	top: `${headerTotalHeight}px`,
 	bottom: '0px',
 	progress: {
@@ -99,41 +121,222 @@ const webviewStyles = {
 	}
 };
 
-const switchPage = (key) => {
-	if (currentKey.value === key) return;
-	currentKey.value = key;
-	isLoading.value = true;
-	webviewSrc.value = currentPage.value.url;
+const setBrightnessMax = () => {
+	// #ifdef APP-PLUS
+	uni.setScreenBrightness({
+		value: 1
+	});
+	// #endif
 };
 
-const reloadWebview = () => {
-	isLoading.value = true;
-	flushWebviewCookies();
-
+const restoreBrightness = () => {
 	// #ifdef APP-PLUS
-	if (typeof uni.createWebviewContext === 'function') {
-		const webviewContext = uni.createWebviewContext('stationWebview', instance?.proxy);
-		if (webviewContext && typeof webviewContext.reload === 'function') {
-			webviewContext.reload();
-			return;
-		}
-	}
+	uni.setScreenBrightness({
+		value: 0.5
+	});
 	// #endif
+};
 
-	const url = webviewSrc.value;
-	webviewSrc.value = '';
-	nextTick(() => {
-		webviewSrc.value = url;
+const showBrightnessNotice = () => {
+	showBrightnessTip.value = true;
+	if (brightnessTipTimer) clearTimeout(brightnessTipTimer);
+	brightnessTipTimer = setTimeout(() => {
+		showBrightnessTip.value = false;
+	}, 3000);
+};
+
+const clearBrightnessNotice = () => {
+	if (brightnessTipTimer) {
+		clearTimeout(brightnessTipTimer);
+		brightnessTipTimer = null;
+	}
+	showBrightnessTip.value = false;
+};
+
+// #ifdef APP-PLUS
+const getCurrentAppWebview = () => {
+	const pages = getCurrentPages();
+	const currentUniPage = pages[pages.length - 1];
+	return currentUniPage && typeof currentUniPage.$getAppWebview === 'function'
+		? currentUniPage.$getAppWebview()
+		: null;
+};
+
+const getChildWebviewId = (key) => {
+	return `station-child-${key}`;
+};
+
+const getChildWebviewStyle = () => {
+	return {
+		top: `${headerTotalHeight}px`,
+		bottom: '0px',
+		left: '0px',
+		right: '0px',
+		progress: {
+			color: '#10b981'
+		},
+		plusrequire: 'none',
+		'uni-app': 'none',
+		bounce: 'none'
+	};
+};
+
+const setCurrentLoadingByKey = (key) => {
+	if (currentKey.value !== key) return;
+	isLoading.value = !pageLoadedSet.has(key);
+};
+
+const refreshCanBackState = (key) => {
+	const child = childWebviews.get(key);
+	if (!child || typeof child.canBack !== 'function') {
+		pageCanBackMap.set(key, false);
+		return;
+	}
+
+	child.canBack((event) => {
+		pageCanBackMap.set(key, !!event.canBack);
 	});
 };
 
-const handleWebviewLoad = () => {
+const bindChildWebviewEvents = (key, webview) => {
+	webview.addEventListener('loading', () => {
+		if (currentKey.value === key) {
+			isLoading.value = true;
+		}
+	});
+
+	webview.addEventListener('loaded', () => {
+		pageLoadedSet.add(key);
+		setCurrentLoadingByKey(key);
+		refreshCanBackState(key);
+		flushWebviewCookies();
+		uni.stopPullDownRefresh();
+	});
+
+	webview.addEventListener('error', () => {
+		pageLoadedSet.delete(key);
+		pageCanBackMap.set(key, false);
+		setCurrentLoadingByKey(key);
+		uni.stopPullDownRefresh();
+		uni.showToast({
+			title: '页面加载失败，点击刷新重试',
+			icon: 'none'
+		});
+	});
+};
+
+const createChildWebview = (key) => {
+	if (childWebviews.has(key)) return childWebviews.get(key);
+	if (!parentWebview || typeof plus === 'undefined') return null;
+
+	const page = getPageByKey(key);
+	const webviewId = getChildWebviewId(key);
+	const existing = plus.webview.getWebviewById(webviewId);
+	if (existing) {
+		try {
+			existing.close('none');
+		} catch (error) {
+			console.warn('关闭旧驿站子窗口失败:', error);
+		}
+	}
+
+	const child = plus.webview.create('', webviewId, getChildWebviewStyle());
+	childWebviews.set(key, child);
+	pageCanBackMap.set(key, false);
+	bindChildWebviewEvents(key, child);
+	parentWebview.append(child);
+	child.loadURL(page.url);
+	return child;
+};
+
+const ensureChildWebview = (key) => {
+	return childWebviews.get(key) || createChildWebview(key);
+};
+
+const syncChildVisibility = () => {
+	childWebviews.forEach((child, key) => {
+		if (key === currentKey.value) {
+			child.show('none');
+			refreshCanBackState(key);
+		} else {
+			child.hide('none');
+		}
+	});
+};
+
+const initAppWebviews = () => {
+	parentWebview = getCurrentAppWebview();
+	if (!parentWebview) return;
+
+	ensureChildWebview(currentKey.value);
+	syncChildVisibility();
+	setCurrentLoadingByKey(currentKey.value);
+};
+
+const reloadNativeWebview = () => {
+	const active = childWebviews.get(currentKey.value);
+	if (!active) return false;
+	pageLoadedSet.delete(currentKey.value);
+	pageCanBackMap.set(currentKey.value, false);
+	isLoading.value = true;
+	active.reload(true);
+	return true;
+};
+
+const closeAllChildren = () => {
+	childWebviews.forEach((child) => {
+		try {
+			child.close('none');
+		} catch (error) {
+			console.warn('关闭驿站子窗口失败:', error);
+		}
+	});
+	childWebviews.clear();
+	pageLoadedSet.clear();
+	pageCanBackMap.clear();
+	parentWebview = null;
+};
+// #endif
+
+const switchPage = (key) => {
+	if (currentKey.value === key) return;
+	currentKey.value = key;
+
+	// #ifdef APP-PLUS
+	ensureChildWebview(key);
+	syncChildVisibility();
+	setCurrentLoadingByKey(key);
+	return;
+	// #endif
+
+	// #ifndef APP-PLUS
+	fallbackSrc.value = getPageByKey(key).url;
+	isLoading.value = true;
+	// #endif
+};
+
+const reloadWebview = () => {
+	flushWebviewCookies();
+
+	// #ifdef APP-PLUS
+	if (reloadNativeWebview()) return;
+	// #endif
+
+	isLoading.value = true;
+	const url = fallbackSrc.value;
+	fallbackSrc.value = '';
+	setTimeout(() => {
+		fallbackSrc.value = url;
+	}, 0);
+};
+
+const handleFallbackLoad = () => {
 	isLoading.value = false;
 	flushWebviewCookies();
 	uni.stopPullDownRefresh();
 };
 
-const handleWebviewError = () => {
+const handleFallbackError = () => {
 	isLoading.value = false;
 	uni.stopPullDownRefresh();
 	uni.showToast({
@@ -142,42 +345,74 @@ const handleWebviewError = () => {
 	});
 };
 
+onLoad(() => {
+	lastAppliedDefaultKey.value = currentKey.value;
+});
+
+onReady(() => {
+	// #ifdef APP-PLUS
+	initAppWebviews();
+	// #endif
+});
+
 onShow(() => {
-	const defaultKey = uni.getStorageSync('stationDefaultPage') || 'identity';
-	if (defaultKey !== lastAppliedDefaultKey.value && stationPages.some(item => item.key === defaultKey)) {
+	const defaultKey = getStoredDefaultKey();
+	if (defaultKey !== lastAppliedDefaultKey.value) {
 		currentKey.value = defaultKey;
-		webviewSrc.value = currentPage.value.url;
-		isLoading.value = true;
 		lastAppliedDefaultKey.value = defaultKey;
+
+		// #ifdef APP-PLUS
+		ensureChildWebview(defaultKey);
+		syncChildVisibility();
+		setCurrentLoadingByKey(defaultKey);
+		// #endif
+
+		// #ifndef APP-PLUS
+		fallbackSrc.value = getPageByKey(defaultKey).url;
+		isLoading.value = true;
+		// #endif
 	}
 
-	// #ifdef APP-PLUS
-	uni.setScreenBrightness({
-		value: 1
-	});
-	// #endif
-
-	showBrightnessTip.value = true;
-	if (brightnessTipTimer) clearTimeout(brightnessTipTimer);
-	brightnessTipTimer = setTimeout(() => {
-		showBrightnessTip.value = false;
-	}, 3000);
+	setBrightnessMax();
+	showBrightnessNotice();
 });
 
 onHide(() => {
 	flushWebviewCookies();
+	clearBrightnessNotice();
+	restoreBrightness();
+});
 
-	if (brightnessTipTimer) {
-		clearTimeout(brightnessTipTimer);
-		brightnessTipTimer = null;
-	}
-	showBrightnessTip.value = false;
+onUnload(() => {
+	clearBrightnessNotice();
+	restoreBrightness();
 
 	// #ifdef APP-PLUS
-	uni.setScreenBrightness({
-		value: 0.5
-	});
+	closeAllChildren();
 	// #endif
+});
+
+onBackPress((options) => {
+	// #ifdef APP-PLUS
+	if (options?.from !== 'backbutton' && options?.from !== 'navigateBack') {
+		return false;
+	}
+
+	const active = childWebviews.get(currentKey.value);
+	if (!active) return false;
+
+	if (!pageCanBackMap.get(currentKey.value)) {
+		return false;
+	}
+
+	active.back();
+	setTimeout(() => {
+		refreshCanBackState(currentKey.value);
+	}, 150);
+	return true;
+	// #endif
+
+	return false;
 });
 </script>
 
@@ -298,7 +533,8 @@ onHide(() => {
 	}
 }
 
-.web-shell {
+.web-shell,
+.native-webview-shell {
 	position: fixed;
 	left: 0;
 	right: 0;
