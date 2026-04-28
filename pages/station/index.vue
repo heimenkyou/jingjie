@@ -229,7 +229,7 @@ const confirmManualBrightnessToggle = () =>
 	});
 
 /**
- * 处理驿站页左下角亮度按钮点击。
+ * 处理驿站页右下角亮度按钮点击。
  */
 const handleBrightnessToggle = async () => {
 	if (!isBrightnessBoosted.value) {

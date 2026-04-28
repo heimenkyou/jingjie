@@ -23,7 +23,7 @@
 		{
 			"path": "pages/settings/index",
 			"style": {
-				"navigationBarTitleText": "设置管理"
+				"navigationBarTitleText": "设置"
 			}
 		}
 	],

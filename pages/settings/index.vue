@@ -9,61 +9,29 @@
 		</view>
 
 		<view class="settings-body">
-			<view class="feature-section">
-				<view class="section-heading section-heading-inline">
-					<text class="section-title">本地条码</text>
-					<text class="section-desc">上传、命名、设默认</text>
-				</view>
-
-				<view v-if="barcodes.length > 0">
-					<view class="subsection-toggle" @click="toggleBarcodeListExpanded">
-						<text class="subsection-toggle-text">
-							{{ barcodeListExpanded ? `已展开 ${barcodes.length} 个条码，点击收起` : `已收起 ${barcodes.length} 个条码，点击展开` }}
-						</text>
-						<text class="subsection-action">{{ barcodeListExpanded ? '收起' : '展开' }}</text>
-					</view>
-
-					<view class="barcode-list" v-if="barcodeListExpanded">
-						<button class="btn-add btn-add-inline" type="primary" @click="addBarcode">+ 添加条码</button>
-
-						<view class="barcode-item" v-for="(item, index) in barcodes" :key="item.id">
-							<view class="image-wrapper">
-								<image class="barcode-image" :src="item.imageData" mode="aspectFit"></image>
-								<view class="radio-wrapper" @click="setDefaultBarcode(item.id)">
-									<view class="radio-circle" :class="{ 'radio-selected': defaultBarcodeId === item.id }">
-										<view class="radio-dot" v-if="defaultBarcodeId === item.id"></view>
-									</view>
-								</view>
-							</view>
-							<view class="barcode-info" @click="renameBarcode(index)">
-								<text class="barcode-name">{{ item.name || '条码 ' + (index + 1) }}</text>
-								<text>{{ defaultBarcodeId === item.id ? '点击编辑名称\n当前默认' : '点击编辑名称' }}</text>
-							</view>
-							<view class="barcode-actions">
-								<button class="btn-delete" @click="deleteBarcode(index)">删除</button>
-							</view>
-						</view>
-					</view>
-				</view>
-
-				<view class="empty-state" v-else>
-					<button class="btn-add btn-add-empty" type="primary" @click="addBarcode">+ 添加条码</button>
-					<text class="empty-text">📷 暂无条码</text>
-					<text class="empty-hint">点击上方按钮添加您的第一个条码</text>
-				</view>
-			</view>
-
 			<view class="feature-section compact-section">
+				<view class="section-heading section-heading-inline">
+					<text class="section-title">基础偏好</text>
+				</view>
+
 				<view class="setting-row" @click="chooseStartupTab">
-					<text class="setting-row-title">启动首选项</text>
+					<text class="setting-row-title">启动应用时</text>
 					<view class="setting-row-value">
 						<text class="setting-row-text">{{ currentStartupLabel }}</text>
 						<text class="setting-row-arrow">></text>
 					</view>
 				</view>
 
-				<view class="setting-row" @click="chooseStationDefaultPage">
-					<text class="setting-row-title">驿站默认展示</text>
+				<view class="setting-row setting-row-child" @click="chooseDefaultBarcode">
+					<text class="setting-row-title">条码页默认展示</text>
+					<view class="setting-row-value">
+						<text class="setting-row-text">{{ currentDefaultBarcodeLabel }}</text>
+						<text class="setting-row-arrow">></text>
+					</view>
+				</view>
+
+				<view class="setting-row setting-row-child" @click="chooseStationDefaultPage">
+					<text class="setting-row-title">驿站页默认展示</text>
 					<view class="setting-row-value">
 						<text class="setting-row-text">{{ currentStationDefaultLabel }}</text>
 						<text class="setting-row-arrow">></text>
@@ -180,15 +148,14 @@ import { checkForUpdate } from '@/utils/updateChecker.js';
 import { BRIGHTNESS_SCENES, getBrightnessPreferences, setSceneAutoBrightnessEnabled } from '@/utils/brightness.js';
 import { clearWebviewSiteData } from '@/utils/webviewCookies.js';
 
-const barcodes = ref([]);
-const defaultBarcodeId = ref('');
 const startupTab = ref('barcode');
 const stationDefaultPage = ref('identity');
 const viewerAutoBrightnessEnabled = ref(false);
 const stationAutoBrightnessEnabled = ref(false);
-const barcodeListExpanded = ref(false);
 const otherExpanded = ref(false);
 const stationCacheSummary = ref('驿站页有毛病了可以试试看');
+const barcodes = ref([]);
+const defaultBarcodeId = ref('');
 
 const startupOptions = [
 	{
@@ -239,6 +206,18 @@ const currentStationDefaultLabel = computed(() => {
 });
 
 /**
+ * 当前默认条码对应的展示文字。
+ */
+const currentDefaultBarcodeLabel = computed(() => {
+	if (!barcodes.value.length) return '未设置';
+	const currentDefault = barcodes.value.find(item => item.id === defaultBarcodeId.value);
+	if (currentDefault) {
+		return currentDefault.name || '未命名';
+	}
+	return barcodes.value[0]?.name || '未命名';
+});
+
+/**
  * 从本地存储加载条码数据。
  */
 const loadBarcodes = () => {
@@ -265,6 +244,8 @@ const saveBarcodes = () => {
 const loadPreferences = () => {
 	startupTab.value = uni.getStorageSync('startupTab') || 'barcode';
 	stationDefaultPage.value = uni.getStorageSync('stationDefaultPage') || 'identity';
+	barcodes.value = uni.getStorageSync('barcodes') || [];
+	defaultBarcodeId.value = uni.getStorageSync('defaultBarcodeId') || '';
 	const brightnessPreferences = getBrightnessPreferences();
 	viewerAutoBrightnessEnabled.value = brightnessPreferences.viewerAuto;
 	stationAutoBrightnessEnabled.value = brightnessPreferences.stationAuto;
@@ -329,10 +310,32 @@ const chooseStationDefaultPage = () => {
 };
 
 /**
- * 切换条码列表的展开状态。
+ * 使用底部动作面板选择默认展示的本地条码。
  */
-const toggleBarcodeListExpanded = () => {
-	barcodeListExpanded.value = !barcodeListExpanded.value;
+const chooseDefaultBarcode = () => {
+	if (!barcodes.value.length) {
+		uni.showToast({
+			title: '请先添加条码',
+			icon: 'none'
+		});
+		return;
+	}
+
+	uni.showActionSheet({
+		itemList: barcodes.value.map((item, index) => item.name || `条码 ${index + 1}`),
+		success: (res) => {
+			const target = barcodes.value[res.tapIndex];
+			if (!target) return;
+
+			defaultBarcodeId.value = target.id;
+			uni.setStorageSync('defaultBarcodeId', target.id);
+			uni.showToast({
+				title: '默认条码已更新',
+				icon: 'success',
+				duration: 1200
+			});
+		}
+	});
 };
 
 /**
@@ -340,141 +343,6 @@ const toggleBarcodeListExpanded = () => {
  */
 const toggleOtherExpanded = () => {
 	otherExpanded.value = !otherExpanded.value;
-};
-
-/**
- * 设置默认条码。
- * @param {string} barcodeId 条码 ID
- */
-const setDefaultBarcode = (barcodeId) => {
-	defaultBarcodeId.value = barcodeId;
-	uni.setStorageSync('defaultBarcodeId', barcodeId);
-	uni.showToast({
-		title: '已设为默认',
-		icon: 'success',
-		duration: 1500
-	});
-};
-
-/**
- * 添加条码。
- */
-const addBarcode = () => {
-	uni.chooseImage({
-		count: 1,
-		sizeType: ['compressed'],
-		sourceType: ['album', 'camera'],
-		success: (res) => {
-			const tempFilePath = res.tempFilePaths[0];
-
-			// #ifdef APP-PLUS
-			const savedFileName = `${Date.now()}.jpg`;
-
-			plus.io.resolveLocalFileSystemURL('_doc', (entry) => {
-				entry.getDirectory('barcodes', { create: true }, (dirEntry) => {
-					plus.io.resolveLocalFileSystemURL(tempFilePath, (fileEntry) => {
-						fileEntry.copyTo(dirEntry, savedFileName, (newEntry) => {
-							const newBarcode = {
-								id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-								name: '',
-								imageData: newEntry.toLocalURL()
-							};
-
-							barcodes.value.push(newBarcode);
-							if (barcodes.value.length === 1) {
-								defaultBarcodeId.value = newBarcode.id;
-								uni.setStorageSync('defaultBarcodeId', newBarcode.id);
-							}
-							saveBarcodes();
-							uni.showToast({
-								title: '添加成功',
-								icon: 'success'
-							});
-						}, () => {
-							uni.showToast({
-								title: '保存失败',
-								icon: 'error'
-							});
-						});
-					});
-				});
-			});
-			// #endif
-
-			// #ifndef APP-PLUS
-			const newBarcode = {
-				id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-				name: '',
-				imageData: tempFilePath
-			};
-
-			barcodes.value.push(newBarcode);
-			if (barcodes.value.length === 1) {
-				defaultBarcodeId.value = newBarcode.id;
-				uni.setStorageSync('defaultBarcodeId', newBarcode.id);
-			}
-			saveBarcodes();
-			uni.showToast({
-				title: '添加成功',
-				icon: 'success'
-			});
-			// #endif
-		}
-	});
-};
-
-/**
- * 删除条码。
- * @param {number} index 条码索引
- */
-const deleteBarcode = (index) => {
-	uni.showModal({
-		title: '确认删除',
-		content: '确定要删除这个条码吗？',
-		success: (res) => {
-			if (res.confirm) {
-				const deletedId = barcodes.value[index].id;
-				barcodes.value.splice(index, 1);
-				if (deletedId === defaultBarcodeId.value) {
-					if (barcodes.value.length > 0) {
-						defaultBarcodeId.value = barcodes.value[0].id;
-						uni.setStorageSync('defaultBarcodeId', defaultBarcodeId.value);
-					} else {
-						defaultBarcodeId.value = '';
-						uni.removeStorageSync('defaultBarcodeId');
-					}
-				}
-				saveBarcodes();
-				uni.showToast({
-					title: '删除成功',
-					icon: 'success'
-				});
-			}
-		}
-	});
-};
-
-/**
- * 重命名条码。
- * @param {number} index 条码索引
- */
-const renameBarcode = (index) => {
-	uni.showModal({
-		title: '修改名称',
-		content: '请输入新名称',
-		editable: true,
-		placeholderText: barcodes.value[index].name || `条码 ${index + 1}`,
-		success: (res) => {
-			if (res.confirm && res.content) {
-				barcodes.value[index].name = res.content.trim();
-				saveBarcodes();
-				uni.showToast({
-					title: '修改成功',
-					icon: 'success'
-				});
-			}
-		}
-	});
 };
 
 /**
@@ -678,172 +546,6 @@ onShow(() => {
 	flex-shrink: 0;
 }
 
-.btn-add {
-	width: 100%;
-	background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
-	color: white;
-	border: none;
-	border-radius: 8px;
-	font-size: 14px;
-	font-weight: 500;
-	height: 40px;
-	line-height: 40px;
-	padding: 0;
-	margin-bottom: 10px;
-}
-
-.btn-add-inline {
-	margin-bottom: 12px;
-}
-
-.btn-add-empty {
-	margin-bottom: 14px;
-}
-
-.subsection-toggle {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 10px 12px;
-	border-radius: 8px;
-	background: rgba(16, 185, 129, 0.08);
-	border: 1px solid rgba(16, 185, 129, 0.12);
-}
-
-.subsection-toggle-text {
-	font-size: 12px;
-	line-height: 1.45;
-	color: #0f766e;
-	display: block;
-}
-
-.subsection-action {
-	font-size: 11px;
-	color: #10b981;
-}
-
-.barcode-list {
-	padding-top: 10px;
-}
-
-.barcode-item {
-	background: white;
-	border-radius: 12px;
-	padding: 12px;
-	margin-bottom: 12px;
-	display: flex;
-	align-items: center;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.barcode-image {
-	width: 72px;
-	height: 72px;
-	min-width: 72px;
-	min-height: 72px;
-	max-width: 72px;
-	max-height: 72px;
-	border-radius: 8px;
-	background-color: #f0f0f0;
-	flex-shrink: 0;
-}
-
-.image-wrapper {
-	position: relative;
-	margin-right: 12px;
-}
-
-.radio-wrapper {
-	position: absolute;
-	top: -6px;
-	left: -6px;
-	padding: 6px;
-	z-index: 10;
-}
-
-.radio-circle {
-	width: 20px;
-	height: 20px;
-	border-radius: 50%;
-	border: 2px solid #d1d5db;
-	background-color: #fff;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	transition: all 0.2s ease;
-	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.radio-selected {
-	border-color: #10b981;
-	background-color: #10b981;
-}
-
-.radio-dot {
-	width: 8px;
-	height: 8px;
-	border-radius: 50%;
-	background-color: #fff;
-}
-
-.barcode-info {
-	flex: 1;
-	min-width: 0;
-	overflow: hidden;
-	cursor: pointer;
-}
-
-.barcode-name {
-	font-size: 15px;
-	color: #333;
-	font-weight: 500;
-	word-break: break-all;
-	display: block;
-}
-
-.barcode-info text:last-child {
-	font-size: 11px;
-	line-height: 1.4;
-	color: #8a8f98;
-	display: block;
-	margin-top: 2px;
-}
-
-.barcode-actions {
-	margin-left: 8px;
-}
-
-.btn-delete {
-	background-color: #ff4444;
-	color: white;
-	border: none;
-	border-radius: 6px;
-	padding: 6px 12px;
-	font-size: 13px;
-}
-
-.empty-state {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	padding: 22px 18px 16px;
-	background: #fff;
-	border-radius: 8px;
-}
-
-.empty-text {
-	font-size: 28px;
-	margin-bottom: 8px;
-	display: block;
-}
-
-.empty-hint {
-	font-size: 14px;
-	color: #999;
-	display: block;
-}
-
 .setting-row {
 	display: flex;
 	align-items: center;
@@ -854,6 +556,10 @@ onShow(() => {
 
 .setting-row+.setting-row {
 	border-top: 1px solid #eee;
+}
+
+.setting-row-child {
+	padding-left: 16px;
 }
 
 .setting-row-title {
