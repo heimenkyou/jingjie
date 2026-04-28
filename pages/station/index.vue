@@ -53,6 +53,8 @@ const HEADER_HEIGHT = 44;
 const systemInfo = uni.getSystemInfoSync();
 const statusBarHeight = systemInfo.statusBarHeight || 0;
 const headerTotalHeight = statusBarHeight + HEADER_HEIGHT;
+const SAME_TAB_WINDOW_OPEN_BRIDGE_PATH = '_www/static/station-window-open-same-tab.js';
+const SAME_TAB_WINDOW_OPEN_BRIDGE_EVAL = `(function(){if(window.__jingjieSameTabWindowOpenInstalled)return;window.__jingjieSameTabWindowOpenInstalled=true;var originalOpen=typeof window.open==='function'?window.open.bind(window):null;function normalizeUrl(url){if(!url)return '';try{return new URL(url,window.location.href).toString()}catch(error){return String(url)}}function navigateInSameTab(url){var targetUrl=normalizeUrl(url);if(!targetUrl)return null;window.location.assign(targetUrl);return null}window.open=function(url,target,features){if(target==='_blank'||target===''||target==null){return navigateInSameTab(url)}if(target==='_self'){return navigateInSameTab(url)}return originalOpen?originalOpen(url,target,features):navigateInSameTab(url)}})();`;
 
 const stationPages = [
 	{
@@ -181,6 +183,24 @@ const getChildWebviewStyle = () => {
 	};
 };
 
+const bindSameTabWindowOpenBridge = (webview) => {
+	if (!webview) return;
+
+	if (typeof webview.appendJsFile === 'function') {
+		webview.appendJsFile(SAME_TAB_WINDOW_OPEN_BRIDGE_PATH);
+	}
+
+	if (typeof webview.evalJS === 'function') {
+		webview.evalJS(SAME_TAB_WINDOW_OPEN_BRIDGE_EVAL);
+	}
+};
+
+const rebindAllSameTabWindowOpenBridges = () => {
+	childWebviews.forEach((child) => {
+		bindSameTabWindowOpenBridge(child);
+	});
+};
+
 const setCurrentLoadingByKey = (key) => {
 	if (currentKey.value !== key) return;
 	isLoading.value = !pageLoadedSet.has(key);
@@ -207,6 +227,7 @@ const bindChildWebviewEvents = (key, webview) => {
 
 	webview.addEventListener('loaded', () => {
 		pageLoadedSet.add(key);
+		bindSameTabWindowOpenBridge(webview);
 		setCurrentLoadingByKey(key);
 		refreshCanBackState(key);
 		flushWebviewCookies();
@@ -243,6 +264,7 @@ const createChildWebview = (key) => {
 	const child = plus.webview.create('', webviewId, getChildWebviewStyle());
 	childWebviews.set(key, child);
 	pageCanBackMap.set(key, false);
+	bindSameTabWindowOpenBridge(child);
 	bindChildWebviewEvents(key, child);
 	parentWebview.append(child);
 	child.loadURL(page.url);
@@ -372,6 +394,10 @@ onShow(() => {
 		isLoading.value = true;
 		// #endif
 	}
+
+	// #ifdef APP-PLUS
+	rebindAllSameTabWindowOpenBridges();
+	// #endif
 
 	setBrightnessMax();
 	showBrightnessNotice();
