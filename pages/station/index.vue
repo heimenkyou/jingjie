@@ -25,6 +25,15 @@
 		<GlobalNoticeBar :z-index="35" />
 		<!-- #endif -->
 
+		<view
+			class="brightness-toggle"
+			:class="{ active: isBrightnessBoosted }"
+			@click="handleBrightnessToggle"
+		>
+			<text class="brightness-toggle-icon">{{ isBrightnessBoosted ? '☀' : '◐' }}</text>
+			<text class="brightness-toggle-text">{{ isBrightnessBoosted ? '恢复亮度' : '点亮屏幕' }}</text>
+		</view>
+
 		<!-- #ifdef APP-PLUS -->
 		<view class="native-webview-shell" :style="webShellStyle"></view>
 		<!-- #endif -->
@@ -44,7 +53,7 @@
 
 		<!-- #ifndef APP-PLUS -->
 		<view class="brightness-tip" v-if="showBrightnessTip">
-			<text class="tip-text">✨ 已为您自动调整至最高亮度</text>
+			<text class="tip-text">{{ brightnessTipText }}</text>
 		</view>
 		<!-- #endif -->
 	</view>
@@ -56,10 +65,21 @@ import { onBackPress, onHide, onLoad, onReady, onShow, onUnload } from '@dcloudi
 // #ifdef APP-PLUS
 import GlobalNoticeBar from '@/components/GlobalNoticeBar.vue';
 // #endif
+import {
+	BRIGHTNESS_SCENES,
+	boostSceneBrightness,
+	isSceneAutoBrightnessEnabled,
+	isSceneBrightnessBoosted,
+	markManualBrightnessHintShown,
+	restoreSceneBrightness,
+	shouldShowManualBrightnessHint,
+	toggleSceneBrightness
+} from '@/utils/brightness.js';
 import { flushWebviewCookies } from '@/utils/webviewCookies.js';
 
 const HEADER_HEIGHT = 44;
 const NOTICE_BAR_HEIGHT = 32;
+const BRIGHTNESS_CONTROL_HEIGHT = 48;
 const systemInfo = uni.getSystemInfoSync();
 const statusBarHeight = systemInfo.statusBarHeight || 0;
 const headerTotalHeight = statusBarHeight + HEADER_HEIGHT;
@@ -96,6 +116,8 @@ const getStoredDefaultKey = () => {
 const currentKey = ref(getStoredDefaultKey());
 const isLoading = ref(true);
 const showBrightnessTip = ref(false);
+const brightnessTipText = ref('✨ 已自动调亮屏幕');
+const isBrightnessBoosted = ref(false);
 const lastAppliedDefaultKey = ref('');
 const fallbackSrc = ref(getPageByKey(currentKey.value).url);
 
@@ -133,32 +155,37 @@ const fallbackWebviewStyles = computed(() => ({
 	}
 }));
 
+/**
+ * 将驿站页亮度提升到最高。
+ * @returns {Promise<boolean>}
+ */
 const setBrightnessMax = () => {
-	// #ifdef APP-PLUS
-	uni.setScreenBrightness({
-		value: 1
-	});
-	// #endif
+	return boostSceneBrightness(BRIGHTNESS_SCENES.station);
 };
 
+/**
+ * 将驿站页亮度恢复到进入前的原始值。
+ * @returns {Promise<boolean>}
+ */
 const restoreBrightness = () => {
-	// #ifdef APP-PLUS
-	uni.setScreenBrightness({
-		value: 0.5
-	});
-	// #endif
+	return restoreSceneBrightness(BRIGHTNESS_SCENES.station);
 };
 
-const showBrightnessNotice = () => {
+/**
+ * 展示驿站页亮度提示，App 端优先使用原生 toast。
+ * @param {string} message 提示文案
+ */
+const showBrightnessNotice = (message) => {
 	// #ifdef APP-PLUS
 	if (typeof plus !== 'undefined' && plus.nativeUI?.toast) {
-		plus.nativeUI.toast('✨ 已为您自动调整至最高亮度', {
+		plus.nativeUI.toast(message, {
 			verticalAlign: 'bottom'
 		});
 		return;
 	}
 	// #endif
 
+	brightnessTipText.value = message;
 	showBrightnessTip.value = true;
 	if (brightnessTipTimer) clearTimeout(brightnessTipTimer);
 	brightnessTipTimer = setTimeout(() => {
@@ -166,6 +193,62 @@ const showBrightnessNotice = () => {
 	}, 3000);
 };
 
+/**
+ * 同步当前驿站页是否处于高亮状态。
+ */
+const syncBrightnessBoostedState = () => {
+	isBrightnessBoosted.value = isSceneBrightnessBoosted(BRIGHTNESS_SCENES.station);
+};
+
+/**
+ * 首次手动点亮前给用户一个提醒，避免突然刺眼。
+ * @returns {Promise<boolean>}
+ */
+const confirmManualBrightnessToggle = () =>
+	new Promise((resolve) => {
+		if (!shouldShowManualBrightnessHint()) {
+			resolve(true);
+			return;
+		}
+
+		uni.showModal({
+			title: '点亮屏幕',
+			content: '点击后会临时拉满屏幕亮度，方便查看取件码。您也可以在设置里开启“驿站页自动点亮”。',
+			confirmText: '继续',
+			success: (res) => {
+				if (res.confirm) {
+					markManualBrightnessHintShown();
+					resolve(true);
+					return;
+				}
+
+				resolve(false);
+			},
+			fail: () => resolve(false)
+		});
+	});
+
+/**
+ * 处理驿站页左下角亮度按钮点击。
+ */
+const handleBrightnessToggle = async () => {
+	if (!isBrightnessBoosted.value) {
+		const confirmed = await confirmManualBrightnessToggle();
+		if (!confirmed) return;
+	}
+
+	const boosted = await toggleSceneBrightness(BRIGHTNESS_SCENES.station);
+	syncBrightnessBoostedState();
+	showBrightnessNotice(
+		boosted
+			? '✨ 已手动拉满亮度，可在设置中开启驿站页自动点亮'
+			: '已恢复原亮度'
+	);
+};
+
+/**
+ * 清理驿站页亮度提示和对应计时器。
+ */
 const clearBrightnessNotice = () => {
 	if (brightnessTipTimer) {
 		clearTimeout(brightnessTipTimer);
@@ -190,7 +273,7 @@ const getChildWebviewId = (key) => {
 const getChildWebviewStyle = () => {
 	return {
 		top: `${headerTotalHeight}px`,
-		bottom: `${NOTICE_BAR_HEIGHT}px`,
+		bottom: `${NOTICE_BAR_HEIGHT + BRIGHTNESS_CONTROL_HEIGHT}px`,
 		left: '0px',
 		right: '0px',
 		progress: {
@@ -418,14 +501,24 @@ onShow(() => {
 	rebindAllSameTabWindowOpenBridges();
 	// #endif
 
-	setBrightnessMax();
-	showBrightnessNotice();
+	// 驿站页重新显示时，根据设置决定是否自动点亮。
+	syncBrightnessBoostedState();
+	if (isSceneAutoBrightnessEnabled(BRIGHTNESS_SCENES.station)) {
+		setBrightnessMax().then(() => {
+			syncBrightnessBoostedState();
+			showBrightnessNotice('✨ 已自动调亮屏幕');
+		});
+	}
 });
 
 onHide(() => {
 	flushWebviewCookies();
 	clearBrightnessNotice();
-	restoreBrightness();
+
+	// 切离驿站页后恢复进入前的原始亮度。
+	restoreBrightness().finally(() => {
+		syncBrightnessBoostedState();
+	});
 });
 
 onUnload(() => {
@@ -590,6 +683,37 @@ onBackPress((options) => {
 .station-webview {
 	width: 100%;
 	height: 100%;
+}
+
+.brightness-toggle {
+	position: fixed;
+	right: 12px;
+	bottom: 38px;
+	z-index: 36;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 9px 12px;
+	border-radius: 999px;
+	background: rgba(15, 23, 42, 0.72);
+	border: 1px solid rgba(255, 255, 255, 0.14);
+	backdrop-filter: blur(10px);
+}
+
+.brightness-toggle.active {
+	background: rgba(16, 185, 129, 0.92);
+}
+
+.brightness-toggle-icon {
+	font-size: 14px;
+	line-height: 1;
+	color: #fff;
+}
+
+.brightness-toggle-text {
+	font-size: 12px;
+	line-height: 1;
+	color: #fff;
 }
 
 .brightness-tip {

@@ -4,6 +4,16 @@
 		<GlobalNoticeBar />
 		<!-- #endif -->
 
+		<view
+			v-if="barcodes.length > 0"
+			class="brightness-toggle"
+			:class="{ active: isBrightnessBoosted }"
+			@click="handleBrightnessToggle"
+		>
+			<text class="brightness-toggle-icon">{{ isBrightnessBoosted ? '☀' : '◐' }}</text>
+			<text class="brightness-toggle-text">{{ isBrightnessBoosted ? '恢复亮度' : '点亮屏幕' }}</text>
+		</view>
+
 		<swiper class="swiper" :current="currentIndex" :indicator-dots="barcodes.length > 1" :autoplay="false"
 			:duration="300" indicator-color="rgba(255,255,255,0.3)" indicator-active-color="#10b981">
 			<swiper-item v-for="(item, index) in barcodes" :key="item.id">
@@ -19,7 +29,7 @@
 		<!-- #ifndef APP-PLUS -->
 		<!-- 亮度提示 -->
 		<view class="brightness-tip" v-if="barcodes.length > 0 && showBrightnessTip">
-			<text class="tip-text">✨ 已为您自动调整至最高亮度</text>
+			<text class="tip-text">{{ brightnessTipText }}</text>
 		</view>
 		<!-- #endif -->
 
@@ -70,10 +80,22 @@ import { onShow, onHide } from '@dcloudio/uni-app';
 // #ifdef APP-PLUS
 import GlobalNoticeBar from '@/components/GlobalNoticeBar.vue';
 // #endif
+import {
+	BRIGHTNESS_SCENES,
+	boostSceneBrightness,
+	isSceneAutoBrightnessEnabled,
+	isSceneBrightnessBoosted,
+	markManualBrightnessHintShown,
+	restoreSceneBrightness,
+	shouldShowManualBrightnessHint,
+	toggleSceneBrightness
+} from '@/utils/brightness.js';
 
 const barcodes = ref([]);
 const showBrightnessTip = ref(false);
+const brightnessTipText = ref('✨ 已自动调亮屏幕');
 const currentIndex = ref(0);
+const isBrightnessBoosted = ref(false);
 let brightnessTipTimer = null;
 
 /**
@@ -110,16 +132,21 @@ const goToSettings = () => {
 	});
 };
 
-const showBrightnessNotice = () => {
+/**
+ * 展示条码页亮度提示，App 端优先使用原生 toast。
+ * @param {string} message 提示文案
+ */
+const showBrightnessNotice = (message) => {
 	// #ifdef APP-PLUS
 	if (typeof plus !== 'undefined' && plus.nativeUI?.toast) {
-		plus.nativeUI.toast('✨ 已为您自动调整至最高亮度', {
+		plus.nativeUI.toast(message, {
 			verticalAlign: 'bottom'
 		});
 		return;
 	}
 	// #endif
 
+	brightnessTipText.value = message;
 	showBrightnessTip.value = true;
 	if (brightnessTipTimer) {
 		clearTimeout(brightnessTipTimer);
@@ -129,20 +156,70 @@ const showBrightnessNotice = () => {
 	}, 3000);
 };
 
-onShow(() => {
-	// 设置屏幕亮度为最大
-	// #ifdef APP-PLUS
-	uni.setScreenBrightness({
-		value: 1
+/**
+ * 同步当前条码页是否处于高亮状态。
+ */
+const syncBrightnessBoostedState = () => {
+	isBrightnessBoosted.value = isSceneBrightnessBoosted(BRIGHTNESS_SCENES.viewer);
+};
+
+/**
+ * 首次手动点亮前给用户一个温和提醒。
+ * @returns {Promise<boolean>}
+ */
+const confirmManualBrightnessToggle = () =>
+	new Promise((resolve) => {
+		if (!shouldShowManualBrightnessHint()) {
+			resolve(true);
+			return;
+		}
+
+		uni.showModal({
+			title: '点亮屏幕',
+			content: '点击后会临时拉满屏幕亮度，方便扫码。您也可以在设置里开启“条码页自动点亮”。',
+			confirmText: '继续',
+			success: (res) => {
+				if (res.confirm) {
+					markManualBrightnessHintShown();
+					resolve(true);
+					return;
+				}
+
+				resolve(false);
+			},
+			fail: () => resolve(false)
+		});
 	});
-	// #endif
 
-	// 每次显示时重新加载数据
+/**
+ * 处理左下角亮度按钮点击，支持一键拉满和恢复。
+ */
+const handleBrightnessToggle = async () => {
+	if (!isBrightnessBoosted.value) {
+		const confirmed = await confirmManualBrightnessToggle();
+		if (!confirmed) return;
+	}
+
+	const boosted = await toggleSceneBrightness(BRIGHTNESS_SCENES.viewer);
+	syncBrightnessBoostedState();
+	showBrightnessNotice(
+		boosted
+			? '✨ 已手动拉满亮度，可在设置中开启条码页自动点亮'
+			: '已恢复原亮度'
+	);
+};
+
+onShow(() => {
+	// 条码页每次显示都重新读取条码和亮度状态，避免设置页改动不同步。
 	loadBarcodes();
+	syncBrightnessBoostedState();
 
-	// 显示亮度提示
-	if (barcodes.value.length > 0) {
-		showBrightnessNotice();
+	// 只有存在条码时才有必要自动点亮屏幕。
+	if (barcodes.value.length > 0 && isSceneAutoBrightnessEnabled(BRIGHTNESS_SCENES.viewer)) {
+		boostSceneBrightness(BRIGHTNESS_SCENES.viewer).then(() => {
+			syncBrightnessBoostedState();
+			showBrightnessNotice('✨ 已自动调亮屏幕');
+		});
 	}
 });
 
@@ -153,12 +230,10 @@ onHide(() => {
 	}
 	showBrightnessTip.value = false;
 
-	// 恢复系统默认亮度
-	// #ifdef APP-PLUS
-	uni.setScreenBrightness({
-		value: 0.5
+	// 离开条码页时恢复进入前的原始亮度。
+	restoreSceneBrightness(BRIGHTNESS_SCENES.viewer).finally(() => {
+		syncBrightnessBoostedState();
 	});
-	// #endif
 });
 </script>
 
@@ -172,6 +247,37 @@ onHide(() => {
 	width: 100vw;
 	background-color: #000;
 	position: relative;
+}
+
+.brightness-toggle {
+	position: absolute;
+	right: 14px;
+	bottom: 44px;
+	z-index: 25;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 9px 12px;
+	border-radius: 999px;
+	background: rgba(15, 23, 42, 0.72);
+	border: 1px solid rgba(255, 255, 255, 0.16);
+	backdrop-filter: blur(10px);
+}
+
+.brightness-toggle.active {
+	background: rgba(16, 185, 129, 0.9);
+}
+
+.brightness-toggle-icon {
+	font-size: 14px;
+	color: #fff;
+	line-height: 1;
+}
+
+.brightness-toggle-text {
+	font-size: 12px;
+	color: #fff;
+	line-height: 1;
 }
 
 .swiper {

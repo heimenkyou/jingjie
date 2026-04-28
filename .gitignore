@@ -34,3 +34,6 @@ desktop.ini
 # 构建文件
 dist/
 build/
+
+# AI
+AGENTS.md

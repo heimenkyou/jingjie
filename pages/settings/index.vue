@@ -5,141 +5,162 @@
 		<!-- #endif -->
 
 		<view class="header">
-			<text class="title">设置管理</text>
 			<text class="subtitle">下方有使用说明</text>
 		</view>
 
 		<view class="settings-body">
-			<view class="preference-section">
-				<text class="preference-title">启动首选项</text>
-				<view
-					class="preference-option"
-					v-for="item in startupOptions"
-					:key="item.value"
-					@click="setStartupTab(item.value)"
-				>
-					<view class="option-radio" :class="{ 'option-radio-selected': startupTab === item.value }">
-						<view class="option-radio-dot" v-if="startupTab === item.value"></view>
-					</view>
-					<view class="option-content">
-						<text class="option-label">{{ item.label }}</text>
-						<text class="option-desc">{{ item.desc }}</text>
-					</view>
-				</view>
-			</view>
-
 			<view class="feature-section">
-				<view class="section-heading">
+				<view class="section-heading section-heading-inline">
 					<text class="section-title">本地条码</text>
-					<text class="section-desc">管理喝水和吹风机条码，默认项会优先展示</text>
+					<text class="section-desc">上传、命名、设默认</text>
 				</view>
 
-				<button class="btn-add" type="primary" @click="addBarcode">+ 添加条码</button>
+				<view v-if="barcodes.length > 0">
+					<view class="subsection-toggle" @click="toggleBarcodeListExpanded">
+						<text class="subsection-toggle-text">
+							{{ barcodeListExpanded ? `已展开 ${barcodes.length} 个条码，点击收起` : `已收起 ${barcodes.length} 个条码，点击展开` }}
+						</text>
+						<text class="subsection-action">{{ barcodeListExpanded ? '收起' : '展开' }}</text>
+					</view>
 
-				<text class="subsection-title" v-if="barcodes.length > 0">条码默认展示项</text>
+					<view class="barcode-list" v-if="barcodeListExpanded">
+						<button class="btn-add btn-add-inline" type="primary" @click="addBarcode">+ 添加条码</button>
 
-				<view class="barcode-list" v-if="barcodes.length > 0">
-					<view class="barcode-item" v-for="(item, index) in barcodes" :key="item.id">
-						<view class="image-wrapper">
-							<image class="barcode-image" :src="item.imageData" mode="aspectFit"></image>
-							<view class="radio-wrapper" @click="setDefaultBarcode(item.id)">
-								<view class="radio-circle" :class="{ 'radio-selected': defaultBarcodeId === item.id }">
-									<view class="radio-dot" v-if="defaultBarcodeId === item.id"></view>
+						<view class="barcode-item" v-for="(item, index) in barcodes" :key="item.id">
+							<view class="image-wrapper">
+								<image class="barcode-image" :src="item.imageData" mode="aspectFit"></image>
+								<view class="radio-wrapper" @click="setDefaultBarcode(item.id)">
+									<view class="radio-circle" :class="{ 'radio-selected': defaultBarcodeId === item.id }">
+										<view class="radio-dot" v-if="defaultBarcodeId === item.id"></view>
+									</view>
 								</view>
 							</view>
-						</view>
-						<view class="barcode-info" @click="renameBarcode(index)">
-							<text class="barcode-name">{{ item.name || '条码 ' + (index + 1) }}</text>
-							<text>{{ defaultBarcodeId === item.id ? '点击编辑名称\n✨ 默认开屏' : '点击编辑名称' }}</text>
-						</view>
-						<view class="barcode-actions">
-							<button class="btn-delete" @click="deleteBarcode(index)">删除</button>
+							<view class="barcode-info" @click="renameBarcode(index)">
+								<text class="barcode-name">{{ item.name || '条码 ' + (index + 1) }}</text>
+								<text>{{ defaultBarcodeId === item.id ? '点击编辑名称\n当前默认' : '点击编辑名称' }}</text>
+							</view>
+							<view class="barcode-actions">
+								<button class="btn-delete" @click="deleteBarcode(index)">删除</button>
+							</view>
 						</view>
 					</view>
 				</view>
 
 				<view class="empty-state" v-else>
+					<button class="btn-add btn-add-empty" type="primary" @click="addBarcode">+ 添加条码</button>
 					<text class="empty-text">📷 暂无条码</text>
 					<text class="empty-hint">点击上方按钮添加您的第一个条码</text>
 				</view>
 			</view>
 
-			<view class="feature-section">
-				<view class="section-heading">
-					<text class="section-title">快递驿站</text>
-					<text class="section-desc">选择进入驿站 Tab 后优先打开的网页</text>
-				</view>
-				<view
-					class="preference-option"
-					v-for="item in stationDefaultOptions"
-					:key="item.value"
-					@click="setStationDefaultPage(item.value)"
-				>
-					<view class="option-radio" :class="{ 'option-radio-selected': stationDefaultPage === item.value }">
-						<view class="option-radio-dot" v-if="stationDefaultPage === item.value"></view>
+			<view class="feature-section compact-section">
+				<view class="setting-row" @click="chooseStartupTab">
+					<text class="setting-row-title">启动首选项</text>
+					<view class="setting-row-value">
+						<text class="setting-row-text">{{ currentStartupLabel }}</text>
+						<text class="setting-row-arrow">></text>
 					</view>
-					<view class="option-content">
-						<text class="option-label">{{ item.label }}</text>
-						<text class="option-desc">{{ item.desc }}</text>
+				</view>
+
+				<view class="setting-row" @click="chooseStationDefaultPage">
+					<text class="setting-row-title">驿站默认展示</text>
+					<view class="setting-row-value">
+						<text class="setting-row-text">{{ currentStationDefaultLabel }}</text>
+						<text class="setting-row-arrow">></text>
 					</view>
 				</view>
 			</view>
 
-			<view class="info-section">
-				<text class="info-title">使用说明</text>
-				<text class="info-text">1. 传截图：把饮水机/吹风机条码存进来，主页左右滑</text>
-				<text class="info-text">2. 取快递：登录一次淘宝，以后点开直接出取件码。</text>
-				<text class="info-text">3. 设默认：常用哪个，就把它设为“启动首选”。</text>
-				<text class="info-text">4. 自动亮：进页面自动最亮，扫完切出自动恢复。</text>
-			</view>
-
-			<view class="update-section">
-				<text class="update-title">版本更新</text>
-				<button class="btn-check-update" @click="handleCheckUpdate">检查更新</button>
-			</view>
-
-			<view class="update-section">
-				<text class="update-title">驿站缓存</text>
-				<text class="update-desc">覆盖升级后若驿站页出现空白块、遮挡或登录异常，可主动清理一次。</text>
-				<button class="btn-check-update btn-clear-cache" @click="handleClearStationCache">清理驿站缓存</button>
-			</view>
-
-			<!-- 关于本项目 -->
-			<view class="about-section">
-				<text class="about-title">关于项目</text>
-
-				<view class="about-block">
-					<text class="about-text">受够了原版 App 的启动慢、广告多、藏得深。</text>
-					<text class="about-text">虽然相册截图没有广告，但不能自动调亮屏幕，导致扫码经常失败。</text>
-					<text class="about-text">所以有了它：零广告，点开就亮，一秒出码，拿完走人。把被烂软件偷走的时间，通通抢回来！</text>
+			<view class="feature-section compact-section">
+				<view class="section-heading section-heading-inline">
+					<text class="section-title">屏幕亮度</text>
 				</view>
 
-				<view class="divider"></view>
-
-				<view class="author-section">
-					<text class="author-title">👨‍💻 作者信息</text>
-					<text class="author-collab">👤 罗文彬 + AI 协作</text>
-					<text class="author-collab">（Vibe Coding 这一块🤠☝️）</text>
+				<view class="toggle-row">
+					<view class="toggle-copy">
+						<text class="toggle-title">条码页自动点亮</text>
+					</view>
+					<switch :checked="viewerAutoBrightnessEnabled" color="#10b981" @change="handleViewerAutoBrightnessChange" />
 				</view>
 
-				<view class="contact-section">
-					<text class="contact-title">📧 联系方式（点击跳转）</text>
-					<text class="contact-item contact-link" @click="openContactLink('qq')">QQ: 3209871721</text>
-					<text class="contact-item contact-link" @click="copyWechat">微信: heimenkyou（备注来源）</text>
-					<text class="contact-item contact-link" @click="openContactLink('email')">邮箱: wenbin.lo@outlook.com</text>
+				<view class="toggle-row">
+					<view class="toggle-copy">
+						<text class="toggle-title">驿站页自动点亮</text>
+					</view>
+					<switch :checked="stationAutoBrightnessEnabled" color="#10b981" @change="handleStationAutoBrightnessChange" />
+				</view>
+			</view>
+
+			<view class="feature-section compact-section">
+				<view class="section-heading section-heading-inline">
+					<text class="section-title">其他</text>
+					<text class="section-desc">缓存、更新、说明</text>
 				</view>
 
-				<view class="source-section">
-					<text class="source-title">⭐ 开源地址</text>
-					<text class="source-hint">本项目已开源，欢迎 Star 和贡献代码</text>
-					<view class="source-links">
-						<view class="source-link" @click="openSourceLink('github')">
-							<image class="link-icon" src="/static/github.png" mode="aspectFit"></image>
-							<text class="link-text">GitHub</text>
+				<view class="setting-row" @click="handleClearStationCache">
+					<text class="setting-row-title">清理驿站缓存</text>
+					<view class="setting-row-value">
+						<text class="setting-row-text subtle">{{ stationCacheSummary }}</text>
+					</view>
+				</view>
+
+				<view class="setting-row" @click="handleCheckUpdate">
+					<text class="setting-row-title">检查更新</text>
+					<view class="setting-row-value">
+						<text class="setting-row-text subtle">{{ currentVersionName }}</text>
+					</view>
+				</view>
+
+				<view class="setting-row" @click="toggleOtherExpanded">
+					<text class="setting-row-title">使用说明与关于项目</text>
+					<view class="setting-row-value">
+						<text class="setting-row-arrow">{{ otherExpanded ? '收起' : '>' }}</text>
+					</view>
+				</view>
+
+				<view class="other-content" v-if="otherExpanded">
+					<view class="info-section">
+						<text class="info-text">1. 传截图：把饮水机/吹风机条码存进来，主页左右滑</text>
+						<text class="info-text">2. 取快递：登录一次淘宝，以后点开直接出取件码。</text>
+						<text class="info-text">3. 设默认：常用哪个，就把它设为“启动首选”。</text>
+						<text class="info-text">4. 点亮屏：可在设置里开自动点亮，也可在页面右下角手动切换。</text>
+					</view>
+
+					<view class="about-section">
+						<view class="about-block">
+							<text class="about-text">受够了原版 App 的启动慢、广告多、藏得深。</text>
+							<text class="about-text">虽然相册截图没有广告，但不能自动调亮屏幕，导致扫码经常失败。</text>
+							<text class="about-text">所以有了它：零广告，点开就亮，一秒出码，拿完走人。把被烂软件偷走的时间，通通抢回来！</text>
 						</view>
-						<view class="source-link" @click="openSourceLink('gitee')">
-							<image class="link-icon" src="/static/gitee.png" mode="aspectFit"></image>
-							<text class="link-text">Gitee</text>
+
+						<view class="divider"></view>
+
+						<view class="author-section">
+							<text class="author-title">👨‍💻 作者信息</text>
+							<text class="author-collab">👤 罗文彬 + AI 协作</text>
+							<text class="author-collab">（Vibe Coding 这一块🤠☝️）</text>
+						</view>
+
+						<view class="contact-section">
+							<text class="contact-title">📧 联系方式（点击跳转）</text>
+							<text class="contact-item contact-link" @click="openContactLink('qq')">QQ: 3209871721</text>
+							<text class="contact-item contact-link" @click="copyWechat">微信: heimenkyou（备注来源）</text>
+							<text class="contact-item contact-link" @click="openContactLink('email')">邮箱: wenbin.lo@outlook.com</text>
+						</view>
+
+						<view class="source-section">
+							<text class="source-title">⭐ 开源地址</text>
+							<text class="source-hint">本项目已开源，欢迎 Star 和贡献代码</text>
+							<view class="source-links">
+								<view class="source-link" @click="openSourceLink('github')">
+									<image class="link-icon" src="/static/github.png" mode="aspectFit"></image>
+									<text class="link-text">GitHub</text>
+								</view>
+								<view class="source-link" @click="openSourceLink('gitee')">
+									<image class="link-icon" src="/static/gitee.png" mode="aspectFit"></image>
+									<text class="link-text">Gitee</text>
+								</view>
+							</view>
 						</view>
 					</view>
 				</view>
@@ -149,47 +170,49 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 // #ifdef APP-PLUS
 import GlobalNoticeBar from '@/components/GlobalNoticeBar.vue';
 // #endif
+import { APP_VERSION_NAME } from '@/utils/appVersion.js';
 import { checkForUpdate } from '@/utils/updateChecker.js';
+import { BRIGHTNESS_SCENES, getBrightnessPreferences, setSceneAutoBrightnessEnabled } from '@/utils/brightness.js';
 import { clearWebviewSiteData } from '@/utils/webviewCookies.js';
 
 const barcodes = ref([]);
 const defaultBarcodeId = ref('');
 const startupTab = ref('barcode');
 const stationDefaultPage = ref('identity');
+const viewerAutoBrightnessEnabled = ref(false);
+const stationAutoBrightnessEnabled = ref(false);
+const barcodeListExpanded = ref(false);
+const otherExpanded = ref(false);
+const stationCacheSummary = ref('驿站页有毛病了可以试试看');
 
 const startupOptions = [
 	{
 		value: 'barcode',
-		label: '本地条码',
-		desc: '打开应用后优先进入喝水/吹风机条码'
+		label: '本地条码'
 	},
 	{
 		value: 'station',
-		label: '快递驿站',
-		desc: '打开应用后优先进入驿站页面'
+		label: '快递驿站'
 	}
 ];
 
 const stationDefaultOptions = [
 	{
 		value: 'identity',
-		label: '淘宝身份码',
-		desc: '取快递出库'
+		label: '淘宝身份码'
 	},
 	{
 		value: 'home',
-		label: '校园驿站首页',
-		desc: '查看待取快递和取件码'
+		label: '驿站首页'
 	},
 	{
 		value: 'cainiao',
-		label: '菜鸟出库码',
-		desc: '可作为备用入口'
+		label: '菜鸟出库码'
 	}
 ];
 
@@ -199,16 +222,30 @@ const contactLinks = {
 };
 
 const wechatId = 'heimenkyou';
+const currentVersionName = APP_VERSION_NAME;
 
 /**
- * 从本地存储加载条码数据
+ * 当前启动首选项对应的展示文字。
+ */
+const currentStartupLabel = computed(() => {
+	return startupOptions.find(item => item.value === startupTab.value)?.label || '本地条码';
+});
+
+/**
+ * 当前驿站默认展示页对应的展示文字。
+ */
+const currentStationDefaultLabel = computed(() => {
+	return stationDefaultOptions.find(item => item.value === stationDefaultPage.value)?.label || '淘宝身份码';
+});
+
+/**
+ * 从本地存储加载条码数据。
  */
 const loadBarcodes = () => {
 	const data = uni.getStorageSync('barcodes');
 	barcodes.value = data || [];
-	// 加载默认条码ID
 	defaultBarcodeId.value = uni.getStorageSync('defaultBarcodeId') || '';
-	// 如果默认条码ID不存在或不在列表中，自动设置第一个为默认
+
 	if (barcodes.value.length > 0 && (!defaultBarcodeId.value || !barcodes.value.find(b => b.id === defaultBarcodeId.value))) {
 		defaultBarcodeId.value = barcodes.value[0].id;
 		uni.setStorageSync('defaultBarcodeId', defaultBarcodeId.value);
@@ -216,17 +253,27 @@ const loadBarcodes = () => {
 };
 
 /**
- * 保存条码数据到本地存储
+ * 保存条码数据到本地存储。
  */
 const saveBarcodes = () => {
 	uni.setStorageSync('barcodes', barcodes.value);
 };
 
+/**
+ * 读取启动项、驿站默认页和亮度偏好设置。
+ */
 const loadPreferences = () => {
 	startupTab.value = uni.getStorageSync('startupTab') || 'barcode';
 	stationDefaultPage.value = uni.getStorageSync('stationDefaultPage') || 'identity';
+	const brightnessPreferences = getBrightnessPreferences();
+	viewerAutoBrightnessEnabled.value = brightnessPreferences.viewerAuto;
+	stationAutoBrightnessEnabled.value = brightnessPreferences.stationAuto;
 };
 
+/**
+ * 设置应用启动后默认打开的主页面。
+ * @param {string} value 启动页标识
+ */
 const setStartupTab = (value) => {
 	startupTab.value = value;
 	uni.setStorageSync('startupTab', value);
@@ -237,6 +284,25 @@ const setStartupTab = (value) => {
 	});
 };
 
+/**
+ * 使用底部动作面板选择启动首选项。
+ */
+const chooseStartupTab = () => {
+	uni.showActionSheet({
+		itemList: startupOptions.map(item => item.label),
+		success: (res) => {
+			const target = startupOptions[res.tapIndex];
+			if (target) {
+				setStartupTab(target.value);
+			}
+		}
+	});
+};
+
+/**
+ * 设置进入驿站后默认展示的子页面。
+ * @param {string} value 驿站页面标识
+ */
 const setStationDefaultPage = (value) => {
 	stationDefaultPage.value = value;
 	uni.setStorageSync('stationDefaultPage', value);
@@ -248,8 +314,37 @@ const setStationDefaultPage = (value) => {
 };
 
 /**
- * 设置默认条码
- * @param {string} barcodeId - 条码ID
+ * 使用底部动作面板选择驿站默认展示页。
+ */
+const chooseStationDefaultPage = () => {
+	uni.showActionSheet({
+		itemList: stationDefaultOptions.map(item => item.label),
+		success: (res) => {
+			const target = stationDefaultOptions[res.tapIndex];
+			if (target) {
+				setStationDefaultPage(target.value);
+			}
+		}
+	});
+};
+
+/**
+ * 切换条码列表的展开状态。
+ */
+const toggleBarcodeListExpanded = () => {
+	barcodeListExpanded.value = !barcodeListExpanded.value;
+};
+
+/**
+ * 切换“其他”模块的展开状态。
+ */
+const toggleOtherExpanded = () => {
+	otherExpanded.value = !otherExpanded.value;
+};
+
+/**
+ * 设置默认条码。
+ * @param {string} barcodeId 条码 ID
  */
 const setDefaultBarcode = (barcodeId) => {
 	defaultBarcodeId.value = barcodeId;
@@ -262,7 +357,7 @@ const setDefaultBarcode = (barcodeId) => {
 };
 
 /**
- * 添加条码
+ * 添加条码。
  */
 const addBarcode = () => {
 	uni.chooseImage({
@@ -270,94 +365,67 @@ const addBarcode = () => {
 		sizeType: ['compressed'],
 		sourceType: ['album', 'camera'],
 		success: (res) => {
-			console.log('选择图片成功:', res);
 			const tempFilePath = res.tempFilePaths[0];
 
 			// #ifdef APP-PLUS
-			// APP环境：将文件保存到应用沙盒目录
-			const savedFileName = Date.now() + '.jpg';
+			const savedFileName = `${Date.now()}.jpg`;
 
 			plus.io.resolveLocalFileSystemURL('_doc', (entry) => {
 				entry.getDirectory('barcodes', { create: true }, (dirEntry) => {
-					console.log('目录创建成功');
-
 					plus.io.resolveLocalFileSystemURL(tempFilePath, (fileEntry) => {
 						fileEntry.copyTo(dirEntry, savedFileName, (newEntry) => {
-							const finalPath = newEntry.toLocalURL();
-							console.log('文件保存成功:', finalPath);
-
 							const newBarcode = {
-								id: Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+								id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
 								name: '',
-								imageData: finalPath
+								imageData: newEntry.toLocalURL()
 							};
 
 							barcodes.value.push(newBarcode);
-							// 如果是第一个条码，自动设为默认
 							if (barcodes.value.length === 1) {
 								defaultBarcodeId.value = newBarcode.id;
 								uni.setStorageSync('defaultBarcodeId', newBarcode.id);
 							}
 							saveBarcodes();
-							console.log('条码已保存到storage:', barcodes.value);
-
 							uni.showToast({
 								title: '添加成功',
 								icon: 'success'
 							});
-						}, (error) => {
-							console.error('复制文件失败:', error);
+						}, () => {
 							uni.showToast({
 								title: '保存失败',
 								icon: 'error'
 							});
 						});
-					}, (error) => {
-						console.error('解析源文件失败:', error);
 					});
-				}, (error) => {
-					console.error('创建目录失败:', error);
 				});
-			}, (error) => {
-				console.error('解析_doc失败:', error);
 			});
 			// #endif
 
 			// #ifndef APP-PLUS
-			// H5环境：转Base64（仅用于开发测试）
-			// 注意：H5环境下uni.getFileSystemManager也可能不可用
-			// 这里用简化方案：直接使用临时路径
-			console.log('H5环境，使用临时路径');
 			const newBarcode = {
-				id: Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+				id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
 				name: '',
 				imageData: tempFilePath
 			};
 
 			barcodes.value.push(newBarcode);
-			// 如果是第一个条码，自动设为默认
 			if (barcodes.value.length === 1) {
 				defaultBarcodeId.value = newBarcode.id;
 				uni.setStorageSync('defaultBarcodeId', newBarcode.id);
 			}
 			saveBarcodes();
-			console.log('条码已保存到storage:', barcodes.value);
-
 			uni.showToast({
 				title: '添加成功',
 				icon: 'success'
 			});
 			// #endif
-		},
-		fail: (err) => {
-			console.error('选择图片失败:', err);
 		}
 	});
 };
 
 /**
- * 删除条码
- * @param {number} index - 条码在数组中的索引
+ * 删除条码。
+ * @param {number} index 条码索引
  */
 const deleteBarcode = (index) => {
 	uni.showModal({
@@ -367,7 +435,6 @@ const deleteBarcode = (index) => {
 			if (res.confirm) {
 				const deletedId = barcodes.value[index].id;
 				barcodes.value.splice(index, 1);
-				// 如果删除的是默认条码，重新设置默认条码
 				if (deletedId === defaultBarcodeId.value) {
 					if (barcodes.value.length > 0) {
 						defaultBarcodeId.value = barcodes.value[0].id;
@@ -388,20 +455,19 @@ const deleteBarcode = (index) => {
 };
 
 /**
- * 重命名条码
- * @param {number} index - 条码在数组中的索引
+ * 重命名条码。
+ * @param {number} index 条码索引
  */
 const renameBarcode = (index) => {
 	uni.showModal({
 		title: '修改名称',
 		content: '请输入新名称',
 		editable: true,
-		placeholderText: barcodes.value[index].name || '条码 ' + (index + 1),
+		placeholderText: barcodes.value[index].name || `条码 ${index + 1}`,
 		success: (res) => {
 			if (res.confirm && res.content) {
 				barcodes.value[index].name = res.content.trim();
 				saveBarcodes();
-				console.log('条码名称已修改:', barcodes.value[index]);
 				uni.showToast({
 					title: '修改成功',
 					icon: 'success'
@@ -411,6 +477,10 @@ const renameBarcode = (index) => {
 	});
 };
 
+/**
+ * 打开联系方式链接。
+ * @param {string} type 联系方式类型
+ */
 const openContactLink = (type) => {
 	const url = contactLinks[type];
 	if (!url) return;
@@ -424,6 +494,9 @@ const openContactLink = (type) => {
 	// #endif
 };
 
+/**
+ * 复制微信号到剪贴板。
+ */
 const copyWechat = () => {
 	uni.setClipboardData({
 		data: wechatId,
@@ -436,6 +509,52 @@ const copyWechat = () => {
 	});
 };
 
+/**
+ * 更新某个页面场景的自动点亮开关，并给出提示。
+ * @param {string} scene 页面场景
+ * @param {boolean} enabled 是否开启
+ * @param {string} title 提示文案
+ */
+const updateAutoBrightnessPreference = (scene, enabled, title) => {
+	setSceneAutoBrightnessEnabled(scene, enabled);
+	uni.showToast({
+		title,
+		icon: 'none',
+		duration: 1400
+	});
+};
+
+/**
+ * 处理条码页自动点亮开关切换。
+ * @param {{ detail: { value: boolean } }} event 开关事件
+ */
+const handleViewerAutoBrightnessChange = (event) => {
+	const enabled = !!event.detail.value;
+	viewerAutoBrightnessEnabled.value = enabled;
+	updateAutoBrightnessPreference(
+		BRIGHTNESS_SCENES.viewer,
+		enabled,
+		enabled ? '已开启条码页自动点亮' : '已关闭条码页自动点亮'
+	);
+};
+
+/**
+ * 处理驿站页自动点亮开关切换。
+ * @param {{ detail: { value: boolean } }} event 开关事件
+ */
+const handleStationAutoBrightnessChange = (event) => {
+	const enabled = !!event.detail.value;
+	stationAutoBrightnessEnabled.value = enabled;
+	updateAutoBrightnessPreference(
+		BRIGHTNESS_SCENES.station,
+		enabled,
+		enabled ? '已开启驿站页自动点亮' : '已关闭驿站页自动点亮'
+	);
+};
+
+/**
+ * 手动触发检查更新。
+ */
 const handleCheckUpdate = () => {
 	checkForUpdate({
 		silent: false,
@@ -443,10 +562,13 @@ const handleCheckUpdate = () => {
 	});
 };
 
+/**
+ * 清理驿站页相关 WebView 缓存和登录态。
+ */
 const handleClearStationCache = () => {
 	uni.showModal({
 		title: '清理驿站缓存',
-		content: '这会清掉驿站 WebView 的站点缓存和登录态，不会删除条码图片和当前设置。是否继续？',
+		content: '这会退出淘宝登录状态，不会删除条码图片和当前设置。是否继续？',
 		success: (res) => {
 			if (!res.confirm) return;
 
@@ -461,29 +583,29 @@ const handleClearStationCache = () => {
 };
 
 /**
- * 打开源码链接
- * @param {string} platform - 平台类型 ('github' 或 'gitee')
+ * 打开源码仓库链接。
+ * @param {string} platform 平台类型
  */
 const openSourceLink = (platform) => {
 	const urls = {
 		github: 'https://github.com/heimenkyou/jingjie',
 		gitee: 'https://gitee.com/heimenkyou/jingjie'
 	};
-	
+
 	const url = urls[platform];
 	if (!url) return;
-	
+
 	// #ifdef APP-PLUS
 	plus.runtime.openURL(url);
 	// #endif
-	
+
 	// #ifdef H5
 	window.open(url, '_blank');
 	// #endif
 };
 
 onShow(() => {
-	// 每次显示时重新加载，以防从其他页面返回
+	// 设置页作为配置中心，每次显示都重新读取最新偏好。
 	loadBarcodes();
 	loadPreferences();
 });
@@ -499,49 +621,128 @@ onShow(() => {
 }
 
 .header {
-	padding: 30px 20px 20px;
-	background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
-	color: white;
-}
-
-.title {
-	font-size: 28px;
-	font-weight: bold;
-	display: block;
-	margin-bottom: 8px;
+	padding: 10px 14px 4px;
 }
 
 .subtitle {
-	font-size: 14px;
-	opacity: 0.9;
+	font-size: 12px;
+	color: #0f766e;
 	display: block;
+	background: rgba(16, 185, 129, 0.1);
+	border: 1px solid rgba(16, 185, 129, 0.16);
+	border-radius: 999px;
+	padding: 6px 10px;
 }
 
 .settings-body {
-	padding: 15px;
+	padding: 12px;
+}
+
+.feature-section {
+	margin-bottom: 12px;
+	padding: 12px;
+	background: #fff;
+	border-radius: 8px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.compact-section {
+	padding-top: 10px;
+	padding-bottom: 10px;
+}
+
+.section-heading {
+	margin-bottom: 10px;
+}
+
+.section-heading-inline {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 10px;
+}
+
+.section-title {
+	font-size: 16px;
+	font-weight: bold;
+	color: #111827;
+	display: block;
+	margin-bottom: 3px;
+}
+
+.section-desc {
+	font-size: 11px;
+	color: #888;
+	line-height: 1.4;
+	display: block;
+	flex-shrink: 0;
+}
+
+.btn-add {
+	width: 100%;
+	background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+	color: white;
+	border: none;
+	border-radius: 8px;
+	font-size: 14px;
+	font-weight: 500;
+	height: 40px;
+	line-height: 40px;
+	padding: 0;
+	margin-bottom: 10px;
+}
+
+.btn-add-inline {
+	margin-bottom: 12px;
+}
+
+.btn-add-empty {
+	margin-bottom: 14px;
+}
+
+.subsection-toggle {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 10px 12px;
+	border-radius: 8px;
+	background: rgba(16, 185, 129, 0.08);
+	border: 1px solid rgba(16, 185, 129, 0.12);
+}
+
+.subsection-toggle-text {
+	font-size: 12px;
+	line-height: 1.45;
+	color: #0f766e;
+	display: block;
+}
+
+.subsection-action {
+	font-size: 11px;
+	color: #10b981;
 }
 
 .barcode-list {
-	padding: 0;
+	padding-top: 10px;
 }
 
 .barcode-item {
 	background: white;
 	border-radius: 12px;
-	padding: 15px;
-	margin-bottom: 15px;
+	padding: 12px;
+	margin-bottom: 12px;
 	display: flex;
 	align-items: center;
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .barcode-image {
-	width: 80px;
-	height: 80px;
-	min-width: 80px;
-	min-height: 80px;
-	max-width: 80px;
-	max-height: 80px;
+	width: 72px;
+	height: 72px;
+	min-width: 72px;
+	min-height: 72px;
+	max-width: 72px;
+	max-height: 72px;
 	border-radius: 8px;
 	background-color: #f0f0f0;
 	flex-shrink: 0;
@@ -549,10 +750,9 @@ onShow(() => {
 
 .image-wrapper {
 	position: relative;
-	margin-right: 15px;
+	margin-right: 12px;
 }
 
-/* 单选框包装器 */
 .radio-wrapper {
 	position: absolute;
 	top: -6px;
@@ -594,15 +794,23 @@ onShow(() => {
 }
 
 .barcode-name {
-	font-size: 16px;
+	font-size: 15px;
 	color: #333;
 	font-weight: 500;
 	word-break: break-all;
 	display: block;
 }
 
+.barcode-info text:last-child {
+	font-size: 11px;
+	line-height: 1.4;
+	color: #8a8f98;
+	display: block;
+	margin-top: 2px;
+}
+
 .barcode-actions {
-	margin-left: 10px;
+	margin-left: 8px;
 }
 
 .btn-delete {
@@ -610,8 +818,8 @@ onShow(() => {
 	color: white;
 	border: none;
 	border-radius: 6px;
-	padding: 8px 16px;
-	font-size: 14px;
+	padding: 6px 12px;
+	font-size: 13px;
 }
 
 .empty-state {
@@ -619,14 +827,14 @@ onShow(() => {
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	padding: 28px 20px 18px;
+	padding: 22px 18px 16px;
 	background: #fff;
 	border-radius: 8px;
 }
 
 .empty-text {
-	font-size: 32px;
-	margin-bottom: 10px;
+	font-size: 28px;
+	margin-bottom: 8px;
 	display: block;
 }
 
@@ -636,323 +844,187 @@ onShow(() => {
 	display: block;
 }
 
-.btn-add {
-	width: 100%;
-	background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
-	color: white;
-	border: none;
-	border-radius: 8px;
-	font-size: 16px;
-	font-weight: 500;
-	padding: 15px;
-	margin-bottom: 20px;
-}
-
-.info-section {
-	margin-bottom: 15px;
-	padding: 15px;
-	background-color: #f9f9f9;
-	border-radius: 8px;
-}
-
-.info-title {
-	font-size: 14px;
-	font-weight: bold;
-	color: #333;
-	display: block;
-	margin-bottom: 8px;
-}
-
-.info-text {
-	font-size: 13px;
-	color: #666;
-	display: block;
-	line-height: 1.8;
-	margin-bottom: 4px;
-}
-
-.update-section {
-	margin-bottom: 15px;
-	padding: 15px;
-	background-color: #fff;
-	border-radius: 8px;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.update-title {
-	font-size: 14px;
-	font-weight: bold;
-	color: #333;
-	display: block;
-	margin-bottom: 10px;
-}
-
-.btn-check-update {
-	width: 100%;
-	height: 40px;
-	line-height: 40px;
-	margin: 0;
-	padding: 0;
-	border-radius: 8px;
-	background: rgba(16, 185, 129, 0.08);
-	color: #10b981;
-	font-size: 14px;
-}
-
-.btn-check-update::after {
-	border: none;
-}
-
-.update-desc {
-	font-size: 12px;
-	line-height: 1.5;
-	color: #888;
-	display: block;
-	margin-bottom: 10px;
-}
-
-.btn-clear-cache {
-	background: rgba(245, 158, 11, 0.12);
-	color: #d97706;
-}
-
-.preference-section {
-	margin-bottom: 15px;
-	padding: 15px;
-	background-color: #fff;
-	border-radius: 8px;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.preference-title {
-	font-size: 14px;
-	font-weight: bold;
-	color: #333;
-	display: block;
-	margin-bottom: 10px;
-}
-
-.preference-option {
+.setting-row {
 	display: flex;
 	align-items: center;
-	padding: 10px 0;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 11px 0;
 }
 
-.preference-option + .preference-option {
+.setting-row+.setting-row {
 	border-top: 1px solid #eee;
 }
 
-.option-radio {
-	width: 20px;
-	height: 20px;
-	border-radius: 50%;
-	border: 2px solid #d1d5db;
-	background-color: #fff;
+.setting-row-title {
+	font-size: 14px;
+	color: #333;
+	font-weight: 500;
+	line-height: 1.4;
+}
+
+.setting-row-value {
 	display: flex;
 	align-items: center;
-	justify-content: center;
-	margin-right: 12px;
+	gap: 6px;
 	flex-shrink: 0;
 }
 
-.option-radio-selected {
-	border-color: #10b981;
-	background-color: #10b981;
+.setting-row-text {
+	font-size: 13px;
+	color: #10b981;
+	line-height: 1;
 }
 
-.option-radio-dot {
-	width: 8px;
-	height: 8px;
-	border-radius: 50%;
-	background-color: #fff;
+.setting-row-text.subtle {
+	color: #8a8f98;
 }
 
-.option-content {
+.setting-row-arrow {
+	font-size: 12px;
+	color: #a1a1aa;
+	line-height: 1;
+}
+
+.toggle-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	padding: 8px 0;
+}
+
+.toggle-row+.toggle-row {
+	border-top: 1px solid #eee;
+}
+
+.toggle-copy {
 	flex: 1;
 	min-width: 0;
 }
 
-.option-label {
-	font-size: 15px;
-	color: #333;
+.toggle-title {
+	font-size: 14px;
 	font-weight: 500;
-	display: block;
-	margin-bottom: 4px;
-}
-
-.option-desc {
-	font-size: 12px;
-	color: #888;
-	line-height: 1.4;
+	color: #333;
 	display: block;
 }
 
-.feature-section {
-	margin-bottom: 15px;
-	padding: 15px;
-	background: #fff;
+.other-content {
+	padding-top: 2px;
+}
+
+.info-section {
+	margin-top: 10px;
+	padding: 12px;
+	background-color: #f9f9f9;
 	border-radius: 8px;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-.section-heading {
-	margin-bottom: 14px;
-}
-
-.section-title {
-	font-size: 18px;
-	font-weight: bold;
-	color: #111827;
-	display: block;
-	margin-bottom: 5px;
-}
-
-.section-desc {
+.info-text {
 	font-size: 12px;
-	color: #888;
-	line-height: 1.5;
+	color: #666;
 	display: block;
+	line-height: 1.65;
+	margin-bottom: 2px;
 }
 
-.subsection-title {
-	font-size: 13px;
-	font-weight: 600;
-	color: #10b981;
-	display: block;
-	margin: 2px 0 10px;
-}
-
-/* 关于本项目 */
 .about-section {
+	margin-top: 10px;
 	background: rgba(255, 255, 255, 0.6);
 	backdrop-filter: blur(10px);
 	-webkit-backdrop-filter: blur(10px);
 	border-radius: 12px;
-	padding: 20px;
-	margin-bottom: 15px;
+	padding: 16px;
 	border: 1px solid rgba(16, 185, 129, 0.1);
 }
 
-.about-title {
-	font-size: 18px;
-	font-weight: bold;
-	color: #10b981;
-	display: block;
-	margin-bottom: 16px;
-	text-align: center;
-}
-
 .about-block {
-	margin-bottom: 14px;
-}
-
-.about-subtitle {
-	font-size: 15px;
-	font-weight: 600;
-	color: #333;
-	display: block;
-	margin-bottom: 8px;
-}
-
-.about-label {
-	font-size: 14px;
-	font-weight: 600;
-	color: #10b981;
-	display: block;
-	margin-bottom: 6px;
+	margin-bottom: 10px;
 }
 
 .about-text {
-	font-size: 13px;
+	font-size: 12px;
 	color: #666;
-	line-height: 1.7;
+	line-height: 1.55;
 	display: block;
 }
 
 .divider {
 	height: 1px;
 	background: linear-gradient(to right, transparent, rgba(16, 185, 129, 0.3), transparent);
-	margin: 20px 0;
+	margin: 14px 0;
 }
 
 .author-section {
-	margin-bottom: 16px;
+	margin-bottom: 12px;
 	text-align: center;
 }
 
 .author-title {
-	font-size: 15px;
+	font-size: 14px;
 	font-weight: 600;
 	color: #333;
-	display: block;
-	margin-bottom: 10px;
-}
-
-.author-collab {
-	font-size: 14px;
-	color: #10b981;
-	font-weight: 500;
 	display: block;
 	margin-bottom: 8px;
 }
 
-.author-quote {
-	font-size: 12px;
-	color: #999;
-	font-style: italic;
+.author-collab {
+	font-size: 13px;
+	color: #10b981;
+	font-weight: 500;
 	display: block;
-	line-height: 1.6;
+	margin-bottom: 6px;
 }
 
 .contact-section {
 	background: rgba(16, 185, 129, 0.05);
 	border-radius: 8px;
-	padding: 12px;
+	padding: 10px;
 	text-align: center;
 }
 
 .contact-title {
-	font-size: 14px;
+	font-size: 13px;
 	font-weight: 600;
 	color: #333;
 	display: block;
-	margin-bottom: 8px;
+	margin-bottom: 6px;
 }
 
 .contact-item {
-	font-size: 13px;
+	font-size: 12px;
 	color: #666;
 	display: block;
-	line-height: 1.8;
+	line-height: 1.65;
 }
 
 .contact-link {
 	color: #10b981;
 }
 
-/* 源码地址板块 */
 .source-section {
 	background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(6, 182, 212, 0.05) 100%);
 	border-radius: 8px;
-	padding: 12px;
-	margin-top: 12px;
+	padding: 10px;
+	margin-top: 10px;
 }
 
 .source-title {
-	font-size: 14px;
+	font-size: 13px;
 	font-weight: 600;
 	color: #333;
 	display: block;
-	margin-bottom: 6px;
+	margin-bottom: 4px;
 	text-align: center;
 }
 
 .source-hint {
-	font-size: 12px;
+	font-size: 11px;
 	color: #999;
 	display: block;
 	text-align: center;
-	margin-bottom: 12px;
+	margin-bottom: 10px;
 }
 
 .source-links {
@@ -963,14 +1035,14 @@ onShow(() => {
 
 .source-link {
 	flex: 1;
-	max-width: 120px;
+	max-width: 110px;
 	background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
 	border-radius: 8px;
-	padding: 10px;
+	padding: 8px;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	gap: 4px;
+	gap: 3px;
 	box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
 	transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
