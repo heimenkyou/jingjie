@@ -1,6 +1,6 @@
+import { APP_VERSION_CODE as CURRENT_VERSION_CODE, APP_VERSION_NAME as CURRENT_VERSION_NAME } from '@/utils/appVersion.js';
+
 const UPDATE_URL = 'https://jingjie.luowb.cn/update.json';
-const CURRENT_VERSION_NAME = 'v2.0.0';
-const CURRENT_VERSION_CODE = 200;
 const CHECK_INTERVAL = 60 * 1000;
 const REQUEST_TIMEOUT = 3000;
 

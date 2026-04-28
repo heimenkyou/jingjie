@@ -1,8 +1,7 @@
 <script>
 	import { scheduleUpdateCheck, showPendingForceUpdate } from '@/utils/updateChecker.js';
+	import { APP_DATA_VERSION } from '@/utils/appVersion.js';
 	import { clearWebviewSiteData, flushWebviewCookies } from '@/utils/webviewCookies.js';
-
-	const APP_DATA_VERSION = '201';
 	const STORAGE_KEYS = {
 		appDataVersion: 'appDataVersion'
 	};
