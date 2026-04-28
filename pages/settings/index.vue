@@ -1,6 +1,8 @@
 <template>
 	<view class="content">
-		<GlobalNoticeBar :top="12" />
+		<!-- #ifdef APP-PLUS -->
+		<GlobalNoticeBar />
+		<!-- #endif -->
 
 		<view class="header">
 			<text class="title">设置管理</text>
@@ -149,7 +151,9 @@
 <script setup>
 import { ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
+// #ifdef APP-PLUS
 import GlobalNoticeBar from '@/components/GlobalNoticeBar.vue';
+// #endif
 import { checkForUpdate } from '@/utils/updateChecker.js';
 import { clearWebviewSiteData } from '@/utils/webviewCookies.js';
 

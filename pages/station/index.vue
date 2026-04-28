@@ -21,7 +21,9 @@
 			</view>
 		</view>
 
-		<GlobalNoticeBar :top="headerTotalHeight + 8" :z-index="35" />
+		<!-- #ifdef APP-PLUS -->
+		<GlobalNoticeBar :z-index="35" />
+		<!-- #endif -->
 
 		<!-- #ifdef APP-PLUS -->
 		<view class="native-webview-shell" :style="webShellStyle"></view>
@@ -49,7 +51,9 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { onBackPress, onHide, onLoad, onReady, onShow, onUnload } from '@dcloudio/uni-app';
+// #ifdef APP-PLUS
 import GlobalNoticeBar from '@/components/GlobalNoticeBar.vue';
+// #endif
 import { flushWebviewCookies } from '@/utils/webviewCookies.js';
 
 const HEADER_HEIGHT = 44;
@@ -118,13 +122,13 @@ const webShellStyle = computed(() => ({
 	top: `${headerTotalHeight}px`
 }));
 
-const fallbackWebviewStyles = {
+const fallbackWebviewStyles = computed(() => ({
 	top: `${headerTotalHeight}px`,
-	bottom: '0px',
+	bottom: '32px',
 	progress: {
 		color: '#10b981'
 	}
-};
+}));
 
 const setBrightnessMax = () => {
 	// #ifdef APP-PLUS
@@ -174,7 +178,7 @@ const getChildWebviewId = (key) => {
 const getChildWebviewStyle = () => {
 	return {
 		top: `${headerTotalHeight}px`,
-		bottom: '0px',
+		bottom: '32px',
 		left: '0px',
 		right: '0px',
 		progress: {

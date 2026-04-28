@@ -2,8 +2,8 @@
 	<view class="notice-bar" v-if="visibleNotice" :style="barStyle">
 		<view class="notice-main" @click="handleNoticeClick">
 			<text class="notice-tag" :class="`notice-tag-${visibleNotice.level || 'info'}`">公告</text>
-			<view class="notice-marquee">
-				<view class="notice-track" :key="`${visibleNotice.id}-${animationSeed}`">
+			<view class="notice-marquee" ref="marqueeRef">
+				<view class="notice-track" ref="trackRef" :style="trackStyle">
 					<text class="notice-text">{{ visibleNotice.content }}</text>
 				</view>
 			</view>
@@ -19,28 +19,30 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
-import { dismissGlobalNotice, loadGlobalNotices } from '@/utils/notices.js';
+import { advanceNoticePlayback, dismissGlobalNotice, getNoticePlaybackState, loadGlobalNotices } from '@/utils/notices.js';
 
 const props = defineProps({
-	top: {
+	bottom: {
 		type: [Number, String],
-		default: 12
+		default: 0
 	},
 	zIndex: {
 		type: Number,
-		default: 50
+		default: 80
 	}
 });
 
 const notices = ref([]);
 const currentIndex = ref(0);
-const animationSeed = ref(0);
-let rotateTimer = null;
+const marqueeRef = ref(null);
+const trackRef = ref(null);
+const trackStyle = ref({});
+let playbackTimer = null;
 
 const barStyle = computed(() => ({
-	top: typeof props.top === 'number' ? `${props.top}px` : props.top,
+	bottom: typeof props.bottom === 'number' ? `${props.bottom}px` : props.bottom,
 	zIndex: String(props.zIndex)
 }));
 
@@ -49,39 +51,68 @@ const visibleNotice = computed(() => {
 	return notices.value[currentIndex.value] || notices.value[0];
 });
 
-const stopRotation = () => {
-	if (rotateTimer) {
-		clearInterval(rotateTimer);
-		rotateTimer = null;
+const stopPlayback = () => {
+	if (playbackTimer) {
+		clearTimeout(playbackTimer);
+		playbackTimer = null;
 	}
 };
 
-const startRotation = () => {
-	stopRotation();
-	if (!notices.value.length) return;
+const scheduleNextNotice = (delayMs) => {
+	stopPlayback();
+	playbackTimer = setTimeout(() => {
+		currentIndex.value = advanceNoticePlayback(notices.value);
+		startPlayback();
+	}, delayMs);
+};
 
-	rotateTimer = setInterval(() => {
-		animationSeed.value += 1;
-		if (notices.value.length > 1) {
-			currentIndex.value = (currentIndex.value + 1) % notices.value.length;
-		}
-	}, 8000);
+const startPlayback = async () => {
+	stopPlayback();
+	if (!visibleNotice.value) return;
+
+	trackStyle.value = {
+		transform: 'translate3d(0, 0, 0)',
+		transition: 'none'
+	};
+	await nextTick();
+
+	const marqueeWidth = marqueeRef.value?.$el?.offsetWidth || marqueeRef.value?.offsetWidth || 0;
+	const trackWidth = trackRef.value?.$el?.offsetWidth || trackRef.value?.offsetWidth || 0;
+	const overflowWidth = Math.max(0, trackWidth - marqueeWidth);
+
+	if (!overflowWidth) {
+		scheduleNextNotice(notices.value.length > 1 ? 5000 : 12000);
+		return;
+	}
+
+	const holdBeforeMs = 1200;
+	const holdAfterMs = 1000;
+	const pixelsPerSecond = 24;
+	const scrollDurationMs = Math.max(6000, Math.round((overflowWidth / pixelsPerSecond) * 1000));
+
+	playbackTimer = setTimeout(() => {
+		trackStyle.value = {
+			transform: `translate3d(-${overflowWidth}px, 0, 0)`,
+			transition: `transform ${scrollDurationMs}ms linear`
+		};
+
+		scheduleNextNotice(scrollDurationMs + holdAfterMs);
+	}, holdBeforeMs);
 };
 
 const refreshNotices = async () => {
 	const payload = await loadGlobalNotices();
 	if (!payload.globalEnable) {
 		notices.value = [];
-		stopRotation();
+		trackStyle.value = {};
+		stopPlayback();
 		return;
 	}
 
 	notices.value = payload.items || [];
-	if (currentIndex.value >= notices.value.length) {
-		currentIndex.value = 0;
-	}
-	animationSeed.value += 1;
-	startRotation();
+	currentIndex.value = getNoticePlaybackState(notices.value).index;
+	await nextTick();
+	startPlayback();
 };
 
 const openNoticeLink = (link) => {
@@ -122,12 +153,8 @@ onShow(() => {
 	refreshNotices();
 });
 
-onMounted(() => {
-	refreshNotices();
-});
-
 onBeforeUnmount(() => {
-	stopRotation();
+	stopPlayback();
 });
 </script>
 
@@ -136,13 +163,15 @@ onBeforeUnmount(() => {
 	position: fixed;
 	left: 12px;
 	right: 12px;
+	height: 32px;
+	box-sizing: border-box;
 	display: flex;
 	align-items: center;
 	gap: 8px;
-	padding: 8px 10px;
+	padding: 0 10px;
 	border-radius: 12px;
-	background: rgba(255, 255, 255, 0.94);
-	box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12);
+	background: rgba(255, 255, 255, 0.96);
+	box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16);
 	border: 1px solid rgba(15, 23, 42, 0.06);
 	overflow: hidden;
 }
@@ -153,6 +182,7 @@ onBeforeUnmount(() => {
 	display: flex;
 	align-items: center;
 	gap: 8px;
+	overflow: hidden;
 }
 
 .notice-tag {
@@ -180,18 +210,25 @@ onBeforeUnmount(() => {
 	flex: 1;
 	min-width: 0;
 	overflow: hidden;
+	height: 18px;
+	display: flex;
+	align-items: center;
 }
 
 .notice-track {
-	display: inline-block;
-	padding-left: 100%;
+	display: inline-flex;
+	align-items: center;
 	white-space: nowrap;
-	animation: notice-scroll 7.2s linear 1;
+	transform: translate3d(0, 0, 0);
+	will-change: transform;
 }
 
 .notice-text {
+	display: inline-block;
 	font-size: 13px;
 	color: #0f172a;
+	white-space: nowrap;
+	word-break: keep-all;
 }
 
 .notice-close {
@@ -204,15 +241,5 @@ onBeforeUnmount(() => {
 	background: rgba(15, 23, 42, 0.06);
 	color: #64748b;
 	font-size: 14px;
-}
-
-@keyframes notice-scroll {
-	0% {
-		transform: translateX(0);
-	}
-
-	100% {
-		transform: translateX(-100%);
-	}
 }
 </style>

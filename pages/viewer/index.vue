@@ -1,6 +1,8 @@
 <template>
 	<view class="container">
-		<GlobalNoticeBar :top="16" />
+		<!-- #ifdef APP-PLUS -->
+		<GlobalNoticeBar />
+		<!-- #endif -->
 
 		<swiper class="swiper" :current="currentIndex" :indicator-dots="barcodes.length > 1" :autoplay="false"
 			:duration="300" indicator-color="rgba(255,255,255,0.3)" indicator-active-color="#10b981">
@@ -63,7 +65,9 @@
 <script setup>
 import { ref } from 'vue';
 import { onShow, onHide } from '@dcloudio/uni-app';
+// #ifdef APP-PLUS
 import GlobalNoticeBar from '@/components/GlobalNoticeBar.vue';
+// #endif
 
 const barcodes = ref([]);
 const showBrightnessTip = ref(false);

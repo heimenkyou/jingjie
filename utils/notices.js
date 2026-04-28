@@ -7,6 +7,7 @@ const STORAGE_KEYS = {
 };
 
 let inFlightRequest = null;
+let currentNoticeIndex = 0;
 
 const now = () => Date.now();
 
@@ -123,4 +124,26 @@ export const dismissGlobalNotice = (noticeId) => {
 	if (ids.includes(noticeId)) return;
 	ids.push(noticeId);
 	setDismissedIds(ids);
+};
+
+export const getNoticePlaybackState = (items = []) => {
+	if (!Array.isArray(items) || !items.length) {
+		return { index: 0 };
+	}
+
+	if (currentNoticeIndex >= items.length) {
+		currentNoticeIndex = 0;
+	}
+
+	return { index: currentNoticeIndex };
+};
+
+export const advanceNoticePlayback = (items = []) => {
+	if (!Array.isArray(items) || !items.length) {
+		currentNoticeIndex = 0;
+		return 0;
+	}
+
+	currentNoticeIndex = (currentNoticeIndex + 1) % items.length;
+	return currentNoticeIndex;
 };
