@@ -1,9 +1,9 @@
 {
-  "versionName": "v2.0.1",
-  "versionCode": 201,
-  "title": "v2.0.1 - 修驿站的bug(建议升级)",
-  "log": "🐛 体验优化与修复\n\n1. 修复了驿站首页搜索栏点击无反应的问题，现在可以在驿站首页搜取件码了。\n2. 修复驿站页面串扰问题。",
-  "url": "https://jingjie.luowb.cn/",
-  "date": "2026-04-28",
+  "versionName": "v2.1.0",
+  "versionCode": 210,
+  "title": "v2.1.0 - 界面升级与体验优化（不会闪瞎眼了）",
+  "log": "✨ 新增\n* 去除了开局闪光弹：点亮屏幕既能手动也能自动\n* 录入更方便：直接在主页录入编辑条码。\n* 设置界面大改：看设置不再力竭了。\n\n🔄 修复与优化\n* 优化部分弹窗与界面 UI 细节，提升整体操作体验。\n* 修复了一些已知问题。",
+  "url": "https://jingjie.luowb.cn/?action=autodownload",
+  "date": "2026-04-29",
   "force": false
 }
