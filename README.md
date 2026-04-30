@@ -35,14 +35,14 @@
       <th align="center">⚙️ 偏好设置</th>
     </tr>
     <tr>
-      <td align="center"><img src="https://img.luowb.cn/posts/2026/04/27/2d34f4bf59098113c41680d8c97f736c-条码页2.webp" width="100%"/></td>
-      <td align="center"><img src="https://img.luowb.cn/posts/2026/04/27/6c28dbc9b9c2947207a85e70b6f7fb1b-驿站页身份码.webp" width="100%"/></td>
-      <td align="center"><img src="https://img.luowb.cn/posts/2026/04/27/3ae7abe133ebb2b6ff02b1e55c9e0643-设置页管理页1.webp" width="100%"/></td>
+      <td align="center"><img src="https://img.luowb.cn/posts/2026/04/30/c82467d84b80f390541faa18e7849f2e-条码页.webp" width="100%"/></td>
+      <td align="center"><img src="https://img.luowb.cn/posts/2026/04/30/75988ec04b97e2fb7fd04af7bbf09ec8-淘宝出库码.webp" width="100%"/></td>
+      <td align="center"><img src="https://img.luowb.cn/posts/2026/04/30/557fe55326feb455c86c759eebbd85fe-设置.webp" width="100%"/></td>
     </tr>
     <tr>
-      <td align="center"><img src="https://img.luowb.cn/posts/2026/04/27/d69e4d58936200e53d49e7028102670f-条码页1.webp" width="100%"/></td>
-      <td align="center"><img src="https://img.luowb.cn/posts/2026/04/27/6984c10011a7824848bdc9781963a20f-驿站页首页.webp" width="100%"/></td>
-      <td align="center"><img src="https://img.luowb.cn/posts/2026/04/27/bb952dce5f4a6e18779390df44d8e82f-设置管理页2.webp" width="100%"/></td>
+      <td align="center"><img src="https://img.luowb.cn/posts/2026/04/30/84cdc65832aa0fdcab3cf735fdd05661-添加条码.webp" width="100%"/></td>
+      <td align="center"><img src="https://img.luowb.cn/posts/2026/04/30/62783d20bf0f3eeda4dc06d7fb1cc052-驿站首页.webp" width="100%"/></td>
+      <td align="center"><img src="https://img.luowb.cn/posts/2026/04/30/f420e6155a06057a2afb414c665d5fce-使用说明与关于项目.webp" width="100%"/></td>
     </tr>
   </table>
 </div>
@@ -61,8 +61,8 @@
 
 ## 📖 快速上手
 
-* **配置条码**：在原版 App 截图 -> 在本应用「设置」中添加 -> 回首页使用。
-* **配置驿站**：切换至「驿站」Tab -> 登录淘宝账号 -> 后续直接出码。
+* **配置条码**：在原版 App 截图 -> 在本应用「条码」页中添加 -> 点击下方名称编辑。
+* **配置驿站**：切换至「驿站」页 -> 登录淘宝账号 -> 后续直接出码。
 
 ---
 
@@ -77,6 +77,8 @@
 
 ```bash
 git clone https://github.com/heimenkyou/jingjie.git
+# Gitee 请使用:
+# git clone https://gitee.com/heimenkyou/jingjie.git
 # 使用 HBuilderX 导入项目
 # 运行 -> 运行到手机或模拟器 -> 运行到 Android App 基座
 ```
