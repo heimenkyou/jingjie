@@ -153,7 +153,7 @@ const stationDefaultPage = ref('identity');
 const viewerAutoBrightnessEnabled = ref(false);
 const stationAutoBrightnessEnabled = ref(false);
 const otherExpanded = ref(false);
-const stationCacheSummary = ref('驿站页有毛病了可以试试看');
+const stationCacheSummary = ref('驿站页有毛病的话\n可以点击后重启应用');
 const barcodes = ref([]);
 const defaultBarcodeId = ref('');
 
