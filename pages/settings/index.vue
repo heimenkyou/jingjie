@@ -463,21 +463,43 @@ const handleCheckUpdate = () => {
 };
 
 /**
+ * 清理驿站缓存后优先自动重启；如果当前环境不支持，则自动退出应用。
+ */
+const restartAppAfterCacheClear = () => {
+	// #ifdef APP-PLUS
+	if (typeof plus !== 'undefined' && plus.runtime) {
+		if (typeof plus.runtime.restart === 'function') {
+			plus.runtime.restart();
+			return;
+		}
+
+		if (typeof plus.runtime.quit === 'function') {
+			plus.runtime.quit();
+			return;
+		}
+	}
+	// #endif
+};
+
+/**
  * 清理驿站页相关 WebView 缓存和登录态。
  */
 const handleClearStationCache = () => {
 	uni.showModal({
 		title: '清理驿站缓存',
-		content: '这会退出淘宝登录状态，不会删除条码图片和当前设置。是否继续？',
+		content: '这会退出淘宝登录状态，不会删除条码图片和当前设置。清理完成后将自动重启应用。是否继续？',
 		success: (res) => {
 			if (!res.confirm) return;
 
 			clearWebviewSiteData();
 			uni.showToast({
-				title: '已清理，请重新进入驿站页',
+				title: '已清理，正在重启…',
 				icon: 'none',
-				duration: 1800
+				duration: 1200
 			});
+			setTimeout(() => {
+				restartAppAfterCacheClear();
+			}, 300);
 		}
 	});
 };
