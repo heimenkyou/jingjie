@@ -112,8 +112,8 @@ const visibleNotice = computed(() => {
 /**
  * 刷新公告列表，并同步当前全局公告索引。
  */
-const refreshNotices = async () => {
-	const payload = await loadGlobalNotices();
+const refreshNotices = async ({ force = false } = {}) => {
+	const payload = await loadGlobalNotices({ force });
 	if (!payload.globalEnable) {
 		notices.value = [];
 		setDialogVisible(false);
@@ -133,9 +133,13 @@ const refreshNotices = async () => {
 /**
  * 打开公告详情弹窗。
  */
-const openDialog = (index = currentIndex.value) => {
+const openDialog = async (index = currentIndex.value) => {
 	if (!visibleNotice.value) return;
-	dialogIndex.value = index;
+	const targetNoticeId = notices.value[index]?.id || visibleNotice.value.id;
+	await refreshNotices({ force: true });
+	const nextIndex = notices.value.findIndex(item => item.id === targetNoticeId);
+	dialogIndex.value = nextIndex === -1 ? Math.min(index, Math.max(0, notices.value.length - 1)) : nextIndex;
+	if (!notices.value.length) return;
 	setDialogVisible(true);
 };
 
