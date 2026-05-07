@@ -133,6 +133,13 @@
 					</view>
 				</view>
 			</view>
+
+			<view class="feature-section compact-section reset-section" @click="resetDefaultPreferences">
+				<view class="reset-row">
+					<text class="reset-title">恢复默认设置</text>
+					<text class="reset-arrow">></text>
+				</view>
+			</view>
 		</view>
 	</view>
 </template>
@@ -148,12 +155,14 @@ import { checkForUpdate } from '@/utils/updateChecker.js';
 import { BRIGHTNESS_SCENES, getBrightnessPreferences, setSceneAutoBrightnessEnabled } from '@/utils/brightness.js';
 import { clearWebviewSiteData } from '@/utils/webviewCookies.js';
 
-const startupTab = ref('barcode');
-const stationDefaultPage = ref('identity');
+const DEFAULT_STARTUP_TAB = 'barcode';
+const DEFAULT_STATION_PAGE = 'home';
+const stationCacheSummary = '驿站页异常时，可点击并重启';
+const startupTab = ref(DEFAULT_STARTUP_TAB);
+const stationDefaultPage = ref(DEFAULT_STATION_PAGE);
 const viewerAutoBrightnessEnabled = ref(false);
 const stationAutoBrightnessEnabled = ref(false);
 const otherExpanded = ref(false);
-const stationCacheSummary = ref('驿站页有毛病的话\n可以点击后重启应用');
 const barcodes = ref([]);
 const defaultBarcodeId = ref('');
 
@@ -202,7 +211,7 @@ const currentStartupLabel = computed(() => {
  * 当前驿站默认展示页对应的展示文字。
  */
 const currentStationDefaultLabel = computed(() => {
-	return stationDefaultOptions.find(item => item.value === stationDefaultPage.value)?.label || '淘宝身份码';
+	return stationDefaultOptions.find(item => item.value === stationDefaultPage.value)?.label || '驿站首页';
 });
 
 /**
@@ -221,8 +230,8 @@ const currentDefaultBarcodeLabel = computed(() => {
  * 读取启动项、驿站默认页和亮度偏好设置。
  */
 const loadPreferences = () => {
-	startupTab.value = uni.getStorageSync('startupTab') || 'barcode';
-	stationDefaultPage.value = uni.getStorageSync('stationDefaultPage') || 'identity';
+	startupTab.value = uni.getStorageSync('startupTab') || DEFAULT_STARTUP_TAB;
+	stationDefaultPage.value = uni.getStorageSync('stationDefaultPage') || DEFAULT_STATION_PAGE;
 	barcodes.value = uni.getStorageSync('barcodes') || [];
 	defaultBarcodeId.value = uni.getStorageSync('defaultBarcodeId') || '';
 
@@ -234,6 +243,20 @@ const loadPreferences = () => {
 	const brightnessPreferences = getBrightnessPreferences();
 	viewerAutoBrightnessEnabled.value = brightnessPreferences.viewerAuto;
 	stationAutoBrightnessEnabled.value = brightnessPreferences.stationAuto;
+};
+
+/**
+ * 根据现有条码恢复“默认展示”设置，没有条码时清空默认项。
+ */
+const resetDefaultBarcodePreference = () => {
+	if (!barcodes.value.length) {
+		defaultBarcodeId.value = '';
+		uni.removeStorageSync('defaultBarcodeId');
+		return;
+	}
+
+	defaultBarcodeId.value = barcodes.value[0].id;
+	uni.setStorageSync('defaultBarcodeId', defaultBarcodeId.value);
 };
 
 /**
@@ -276,6 +299,30 @@ const setStationDefaultPage = (value) => {
 		title: '驿站默认项已更新',
 		icon: 'success',
 		duration: 1200
+	});
+};
+
+/**
+ * 将启动项和默认展示项恢复为推荐初始值。
+ */
+const resetDefaultPreferences = () => {
+	uni.showModal({
+		title: '恢复默认设置',
+		content: '是否恢复为默认设置？',
+		success: (res) => {
+			if (!res.confirm) return;
+
+			startupTab.value = DEFAULT_STARTUP_TAB;
+			stationDefaultPage.value = DEFAULT_STATION_PAGE;
+			uni.setStorageSync('startupTab', DEFAULT_STARTUP_TAB);
+			uni.setStorageSync('stationDefaultPage', DEFAULT_STATION_PAGE);
+			resetDefaultBarcodePreference();
+			uni.showToast({
+				title: '已恢复默认设置',
+				icon: 'success',
+				duration: 1500
+			});
+		}
 	});
 };
 
@@ -740,6 +787,31 @@ onShow(() => {
 .source-link:active {
 	transform: scale(0.95);
 	box-shadow: 0 1px 3px rgba(16, 185, 129, 0.3);
+}
+
+.reset-section {
+	background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(249, 115, 22, 0.08) 100%);
+	border: 1px solid rgba(245, 158, 11, 0.18);
+}
+
+.reset-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.reset-title {
+	font-size: 14px;
+	font-weight: 600;
+	color: #9a3412;
+}
+
+.reset-arrow {
+	font-size: 12px;
+	line-height: 1;
+	color: #c2410c;
+	flex-shrink: 0;
 }
 
 .link-icon {
