@@ -22,7 +22,7 @@
 		</view>
 
 		<!-- #ifdef APP-PLUS -->
-		<GlobalNoticeBar :z-index="35" />
+		<GlobalNoticeBar :z-index="35" @dialog-change="handleNoticeDialogChange" />
 		<!-- #endif -->
 
 		<view
@@ -81,6 +81,7 @@ import { flushWebviewCookies } from '@/utils/webviewCookies.js';
 const HEADER_HEIGHT = 44;
 const NOTICE_BAR_HEIGHT = 32;
 const BRIGHTNESS_CONTROL_HEIGHT = 48;
+const DEFAULT_STATION_PAGE_KEY = 'home';
 const systemInfo = uni.getSystemInfoSync();
 const statusBarHeight = systemInfo.statusBarHeight || 0;
 const headerTotalHeight = statusBarHeight + HEADER_HEIGHT;
@@ -125,8 +126,8 @@ const getPageByKey = (key) => {
  * @returns {string}
  */
 const getStoredDefaultKey = () => {
-	const key = uni.getStorageSync('stationDefaultPage') || 'identity';
-	return stationPages.some(item => item.key === key) ? key : 'identity';
+	const key = uni.getStorageSync('stationDefaultPage') || DEFAULT_STATION_PAGE_KEY;
+	return stationPages.some(item => item.key === key) ? key : DEFAULT_STATION_PAGE_KEY;
 };
 
 const currentKey = ref(getStoredDefaultKey());
@@ -139,6 +140,7 @@ const fallbackSrc = ref(getPageByKey(currentKey.value).url);
 
 let brightnessTipTimer = null;
 let identityPreloadTimer = null;
+let noticeDialogVisible = false;
 
 // #ifdef APP-PLUS
 const childWebviews = new Map();
@@ -386,6 +388,25 @@ const rebindAllSameTabWindowOpenBridges = () => {
 };
 
 /**
+ * 公告详情弹层显示时先隐藏当前原生子 WebView，关闭后再恢复。
+ * 这样仍可复用现有 Vue 公告样式，不需要改成原生弹窗。
+ * @param {boolean} visible 公告详情弹层是否可见
+ */
+const handleNoticeDialogChange = (visible) => {
+	noticeDialogVisible = visible;
+	if (!childWebviews.size) return;
+
+	if (visible) {
+		childWebviews.forEach((child) => {
+			child.hide('none');
+		});
+		return;
+	}
+
+	syncChildVisibility();
+};
+
+/**
  * 仅在当前 tab 上同步加载态，避免隐藏页事件误改头部状态。
  * @param {string} key 驿站页面标识
  */
@@ -491,6 +512,13 @@ const ensureChildWebview = (key) => {
  * 切换三个驿站子页面的显隐，只保留当前 tab 可见。
  */
 const syncChildVisibility = () => {
+	if (noticeDialogVisible) {
+		childWebviews.forEach((child) => {
+			child.hide('none');
+		});
+		return;
+	}
+
 	childWebviews.forEach((child, key) => {
 		if (key === currentKey.value) {
 			child.show('none');
@@ -654,6 +682,7 @@ onHide(() => {
 	flushWebviewCookies();
 	clearBrightnessNotice();
 	clearIdentityPreloadTimer();
+	noticeDialogVisible = false;
 
 	// 切离驿站页后恢复进入前的原始亮度。
 	restoreBrightness().finally(() => {
@@ -664,6 +693,7 @@ onHide(() => {
 onUnload(() => {
 	clearBrightnessNotice();
 	clearIdentityPreloadTimer();
+	noticeDialogVisible = false;
 	restoreBrightness();
 
 	// #ifdef APP-PLUS

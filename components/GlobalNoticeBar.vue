@@ -79,7 +79,7 @@
 
 <script setup>
 import { computed, ref } from 'vue';
-import { onShow } from '@dcloudio/uni-app';
+import { onHide, onShow } from '@dcloudio/uni-app';
 import { dismissGlobalNotice, loadGlobalNotices } from '@/utils/notices.js';
 
 const props = defineProps({
@@ -92,6 +92,7 @@ const props = defineProps({
 		default: 80
 	}
 });
+const emit = defineEmits(['dialog-change']);
 
 const notices = ref([]);
 const currentIndex = ref(0);
@@ -115,7 +116,7 @@ const refreshNotices = async () => {
 	const payload = await loadGlobalNotices();
 	if (!payload.globalEnable) {
 		notices.value = [];
-		dialogVisible.value = false;
+		setDialogVisible(false);
 		currentIndex.value = 0;
 		return;
 	}
@@ -135,14 +136,14 @@ const refreshNotices = async () => {
 const openDialog = (index = currentIndex.value) => {
 	if (!visibleNotice.value) return;
 	dialogIndex.value = index;
-	dialogVisible.value = true;
+	setDialogVisible(true);
 };
 
 /**
  * 关闭公告详情弹窗。
  */
 const closeDialog = () => {
-	dialogVisible.value = false;
+	setDialogVisible(false);
 };
 
 /**
@@ -199,11 +200,20 @@ const handleDialogDismiss = async (noticeId) => {
 	dismissGlobalNotice(noticeId);
 	await refreshNotices();
 	if (!notices.value.length) {
-		dialogVisible.value = false;
+		setDialogVisible(false);
 		return;
 	}
 
 	dialogIndex.value = Math.min(dialogIndex.value, notices.value.length - 1);
+};
+
+/**
+ * 统一更新公告详情弹层状态，并把状态同步给宿主页。
+ * @param {boolean} visible 是否显示弹层
+ */
+const setDialogVisible = (visible) => {
+	dialogVisible.value = visible;
+	emit('dialog-change', visible);
 };
 
 /**
@@ -224,6 +234,10 @@ const handleInlineSwiperChange = (event) => {
 
 onShow(() => {
 	refreshNotices();
+});
+
+onHide(() => {
+	closeDialog();
 });
 </script>
 
