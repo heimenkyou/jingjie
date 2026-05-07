@@ -1,11 +1,5 @@
 const NOTICE_URL = 'https://jingjie.luowb.cn/notices.json';
 const DEFAULT_POLL_INTERVAL_SECONDS = 7200;
-const STATIC_NOTICE_DURATION_MS = 5000;
-const SCROLL_HOLD_BEFORE_MS = 1200;
-const SCROLL_HOLD_AFTER_MS = 1000;
-const MIN_SCROLL_DURATION_MS = 6000;
-const SCROLL_MS_PER_EXTRA_CHAR = 260;
-const STATIC_CONTENT_LENGTH = 18;
 const STORAGE_KEYS = {
 	cache: 'globalNoticeCache',
 	lastFetchAt: 'globalNoticeLastFetchAt',
@@ -13,12 +7,6 @@ const STORAGE_KEYS = {
 };
 
 let inFlightRequest = null;
-let currentNoticeIndex = 0;
-let currentNoticeStartedAt = 0;
-let currentNoticeDurationMs = STATIC_NOTICE_DURATION_MS;
-let currentItemsSignature = '';
-let playbackTimer = null;
-const playbackListeners = new Set();
 
 const now = () => Date.now();
 
@@ -88,6 +76,7 @@ const requestRemotePayload = () =>
 					resolve(typeof res.data === 'string' ? JSON.parse(res.data) : res.data);
 					return;
 				}
+
 				reject(new Error(`公告请求失败: ${res.statusCode}`));
 			},
 			fail: reject
@@ -144,123 +133,4 @@ export const dismissGlobalNotice = (noticeId) => {
 	if (ids.includes(noticeId)) return;
 	ids.push(noticeId);
 	setDismissedIds(ids);
-};
-
-const getItemsSignature = (items = []) => {
-	return items.map(item => item?.id || '').join('|');
-};
-
-const estimateNoticeDuration = (item) => {
-	const contentLength = Array.from(item?.content || '').length;
-	if (contentLength <= STATIC_CONTENT_LENGTH) {
-		return STATIC_NOTICE_DURATION_MS;
-	}
-
-	const scrollDuration = Math.max(
-		MIN_SCROLL_DURATION_MS,
-		(contentLength - STATIC_CONTENT_LENGTH) * SCROLL_MS_PER_EXTRA_CHAR
-	);
-	return SCROLL_HOLD_BEFORE_MS + scrollDuration + SCROLL_HOLD_AFTER_MS;
-};
-
-const notifyPlaybackListeners = () => {
-	const snapshot = {
-		index: currentNoticeIndex,
-		startedAt: currentNoticeStartedAt,
-		durationMs: currentNoticeDurationMs
-	};
-	playbackListeners.forEach((listener) => {
-		try {
-			listener(snapshot);
-		} catch (error) {
-			console.warn('公告播放监听失败:', error);
-		}
-	});
-};
-
-const stopPlaybackTimer = () => {
-	if (playbackTimer) {
-		clearTimeout(playbackTimer);
-		playbackTimer = null;
-	}
-};
-
-const schedulePlaybackAdvance = (items = []) => {
-	stopPlaybackTimer();
-	if (!items.length) return;
-
-	playbackTimer = setTimeout(() => {
-		currentNoticeIndex = (currentNoticeIndex + 1) % items.length;
-		currentNoticeStartedAt = now();
-		currentNoticeDurationMs = estimateNoticeDuration(items[currentNoticeIndex]);
-		notifyPlaybackListeners();
-		schedulePlaybackAdvance(items);
-	}, currentNoticeDurationMs);
-};
-
-/**
- * 同步全局公告播放状态，让不同页面共用同一条公告与同一播放进度。
- * @param {Array<{ id: string, content: string }>} items 当前可展示的公告列表
- * @returns {{ index: number, startedAt: number, durationMs: number }}
- */
-export const syncNoticePlayback = (items = []) => {
-	if (!Array.isArray(items) || !items.length) {
-		currentNoticeIndex = 0;
-		currentNoticeStartedAt = 0;
-		currentNoticeDurationMs = STATIC_NOTICE_DURATION_MS;
-		currentItemsSignature = '';
-		stopPlaybackTimer();
-		notifyPlaybackListeners();
-		return {
-			index: 0,
-			startedAt: 0,
-			durationMs: STATIC_NOTICE_DURATION_MS
-		};
-	}
-
-	const nextSignature = getItemsSignature(items);
-	if (nextSignature !== currentItemsSignature) {
-		currentItemsSignature = nextSignature;
-		currentNoticeIndex = 0;
-		currentNoticeStartedAt = now();
-		currentNoticeDurationMs = estimateNoticeDuration(items[0]);
-		stopPlaybackTimer();
-		schedulePlaybackAdvance(items);
-		notifyPlaybackListeners();
-	} else if (!playbackTimer) {
-		if (!currentNoticeStartedAt) {
-			currentNoticeStartedAt = now();
-		}
-		currentNoticeDurationMs = estimateNoticeDuration(items[currentNoticeIndex]);
-		schedulePlaybackAdvance(items);
-		notifyPlaybackListeners();
-	}
-
-	return {
-		index: currentNoticeIndex,
-		startedAt: currentNoticeStartedAt,
-		durationMs: currentNoticeDurationMs
-	};
-};
-
-/**
- * 订阅公告播放状态变化，页面切换时复用同一份进度。
- * @param {(snapshot: { index: number, startedAt: number, durationMs: number }) => void} listener 监听回调
- * @returns {() => void}
- */
-export const subscribeNoticePlayback = (listener) => {
-	if (typeof listener !== 'function') {
-		return () => {};
-	}
-
-	playbackListeners.add(listener);
-	listener({
-		index: currentNoticeIndex,
-		startedAt: currentNoticeStartedAt,
-		durationMs: currentNoticeDurationMs
-	});
-
-	return () => {
-		playbackListeners.delete(listener);
-	};
 };
