@@ -87,6 +87,11 @@ const headerTotalHeight = statusBarHeight + HEADER_HEIGHT;
 const STATION_CACHE_GUARD_EVAL = `(function(){var suffix='-cache--/wow/z/uniapp/1100333/last-mile-fe/m-end-school-tab/home';var count=0;try{for(var index=window.localStorage.length-1;index>=0;index-=1){var key=window.localStorage.key(index);if(typeof key==='string'&&key.indexOf(suffix)!==-1){window.localStorage.removeItem(key);count+=1}}if(count){console.log('${STATION_LOG_PREFIX}','已清理驿站首页快照缓存:',count)}}catch(error){console.warn('${STATION_LOG_PREFIX}','清理驿站首页快照缓存失败:',error)}})();`;
 const SAME_TAB_WINDOW_OPEN_BRIDGE_PATH = '_www/static/station-window-open-same-tab.js';
 const SAME_TAB_WINDOW_OPEN_BRIDGE_EVAL = `(function(){if(window.__jingjieSameTabWindowOpenInstalled)return;window.__jingjieSameTabWindowOpenInstalled=true;var originalOpen=typeof window.open==='function'?window.open.bind(window):null;function normalizeUrl(url){if(!url)return '';try{return new URL(url,window.location.href).toString()}catch(error){return String(url)}}function navigateInSameTab(url){var targetUrl=normalizeUrl(url);if(!targetUrl)return null;window.location.assign(targetUrl);return null}window.open=function(url,target,features){if(target==='_blank'||target===''||target==null){return navigateInSameTab(url)}if(target==='_self'){return navigateInSameTab(url)}return originalOpen?originalOpen(url,target,features):navigateInSameTab(url)}})();`;
+const STATION_RESOURCE_REDIRECTS = [
+	{ match: '.*log\\.mmstat\\.com.*', redirect: '_www/static/empty.js' },
+	{ match: '.*wgo\\.mmstat\\.com.*', redirect: '_www/static/empty.js' },
+	{ match: '.*gm\\.mmstat\\.com.*', redirect: '_www/static/empty.js' }
+];
 
 const stationPages = [
 	{
@@ -133,6 +138,7 @@ const lastAppliedDefaultKey = ref('');
 const fallbackSrc = ref(getPageByKey(currentKey.value).url);
 
 let brightnessTipTimer = null;
+let identityPreloadTimer = null;
 
 // #ifdef APP-PLUS
 const childWebviews = new Map();
@@ -268,6 +274,15 @@ const clearBrightnessNotice = () => {
 	showBrightnessTip.value = false;
 };
 
+/**
+ * 清理身份码后台预加载计时器，避免重复排队。
+ */
+const clearIdentityPreloadTimer = () => {
+	if (!identityPreloadTimer) return;
+	clearTimeout(identityPreloadTimer);
+	identityPreloadTimer = null;
+};
+
 // #ifdef APP-PLUS
 /**
  * 获取当前 uni 页面对应的原生宿主 WebView。
@@ -307,6 +322,40 @@ const getChildWebviewStyle = () => {
 		'uni-app': 'none',
 		bounce: 'none'
 	};
+};
+
+/**
+ * 给整个驿站页挂上资源秒回拦截，尽量压掉无意义埋点请求和刷屏报错。
+ * @param {PlusWebviewWebviewObject} webview 子 WebView
+ */
+const applyStationResourceRedirects = (webview) => {
+	if (!webview || typeof webview.overrideResourceRequest !== 'function') {
+		return;
+	}
+
+	webview.overrideResourceRequest(STATION_RESOURCE_REDIRECTS);
+};
+
+/**
+ * 在同一个驿站宿主里后台预加载身份码页，避免首次点开时从零加载。
+ * 只预热身份码，不改当前 tab，也不影响当前页面的加载状态。
+ */
+const queueIdentityPreload = () => {
+	clearIdentityPreloadTimer();
+	if (!parentWebview || currentKey.value === 'identity' || childWebviews.has('identity')) {
+		return;
+	}
+
+	identityPreloadTimer = setTimeout(() => {
+		identityPreloadTimer = null;
+		if (!parentWebview || currentKey.value === 'identity' || childWebviews.has('identity')) {
+			return;
+		}
+
+		ensureChildWebview('identity');
+		syncChildVisibility();
+		console.log(STATION_LOG_PREFIX, '已在驿站页后台预加载身份码');
+	}, 120);
 };
 
 /**
@@ -418,9 +467,13 @@ const createChildWebview = (key) => {
 	const child = plus.webview.create('', webviewId, getChildWebviewStyle());
 	childWebviews.set(key, child);
 	pageCanBackMap.set(key, false);
+	applyStationResourceRedirects(child);
 	bindSameTabWindowOpenBridge(child);
 	bindChildWebviewEvents(key, child);
 	parentWebview.append(child);
+	if (key !== currentKey.value) {
+		child.hide('none');
+	}
 	child.loadURL(page.url);
 	return child;
 };
@@ -458,6 +511,7 @@ const initAppWebviews = () => {
 	ensureChildWebview(currentKey.value);
 	syncChildVisibility();
 	setCurrentLoadingByKey(currentKey.value);
+	queueIdentityPreload();
 };
 
 /**
@@ -583,6 +637,7 @@ onShow(() => {
 
 	// #ifdef APP-PLUS
 	rebindAllSameTabWindowOpenBridges();
+	queueIdentityPreload();
 	// #endif
 
 	// 驿站页重新显示时，根据设置决定是否自动点亮。
@@ -598,6 +653,7 @@ onShow(() => {
 onHide(() => {
 	flushWebviewCookies();
 	clearBrightnessNotice();
+	clearIdentityPreloadTimer();
 
 	// 切离驿站页后恢复进入前的原始亮度。
 	restoreBrightness().finally(() => {
@@ -607,6 +663,7 @@ onHide(() => {
 
 onUnload(() => {
 	clearBrightnessNotice();
+	clearIdentityPreloadTimer();
 	restoreBrightness();
 
 	// #ifdef APP-PLUS

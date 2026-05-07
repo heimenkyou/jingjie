@@ -3,6 +3,7 @@
 	import { APP_DATA_VERSION } from '@/utils/appVersion.js';
 	import { STATION_LOG_PREFIX } from '@/utils/stationLog.js';
 	import { clearWebviewSiteData, flushWebviewCookies } from '@/utils/webviewCookies.js';
+
 	const STORAGE_KEYS = {
 		appDataVersion: 'appDataVersion'
 	};
