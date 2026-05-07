@@ -218,27 +218,6 @@ const currentDefaultBarcodeLabel = computed(() => {
 });
 
 /**
- * 从本地存储加载条码数据。
- */
-const loadBarcodes = () => {
-	const data = uni.getStorageSync('barcodes');
-	barcodes.value = data || [];
-	defaultBarcodeId.value = uni.getStorageSync('defaultBarcodeId') || '';
-
-	if (barcodes.value.length > 0 && (!defaultBarcodeId.value || !barcodes.value.find(b => b.id === defaultBarcodeId.value))) {
-		defaultBarcodeId.value = barcodes.value[0].id;
-		uni.setStorageSync('defaultBarcodeId', defaultBarcodeId.value);
-	}
-};
-
-/**
- * 保存条码数据到本地存储。
- */
-const saveBarcodes = () => {
-	uni.setStorageSync('barcodes', barcodes.value);
-};
-
-/**
  * 读取启动项、驿站默认页和亮度偏好设置。
  */
 const loadPreferences = () => {
@@ -246,6 +225,12 @@ const loadPreferences = () => {
 	stationDefaultPage.value = uni.getStorageSync('stationDefaultPage') || 'identity';
 	barcodes.value = uni.getStorageSync('barcodes') || [];
 	defaultBarcodeId.value = uni.getStorageSync('defaultBarcodeId') || '';
+
+	if (barcodes.value.length > 0 && (!defaultBarcodeId.value || !barcodes.value.find(item => item.id === defaultBarcodeId.value))) {
+		defaultBarcodeId.value = barcodes.value[0].id;
+		uni.setStorageSync('defaultBarcodeId', defaultBarcodeId.value);
+	}
+
 	const brightnessPreferences = getBrightnessPreferences();
 	viewerAutoBrightnessEnabled.value = brightnessPreferences.viewerAuto;
 	stationAutoBrightnessEnabled.value = brightnessPreferences.stationAuto;
@@ -474,7 +459,6 @@ const openSourceLink = (platform) => {
 
 onShow(() => {
 	// 设置页作为配置中心，每次显示都重新读取最新偏好。
-	loadBarcodes();
 	loadPreferences();
 });
 </script>

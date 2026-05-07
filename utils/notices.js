@@ -94,6 +94,11 @@ const requestRemotePayload = () =>
 		});
 	});
 
+/**
+ * 读取全局公告，优先复用本地缓存，必要时再发起远程请求。
+ * @param {{ force?: boolean }} [options] 控制是否强制拉取远程配置
+ * @returns {Promise<{ globalEnable: boolean, pollInterval: number, items: Array<object> }>}
+ */
 export const loadGlobalNotices = async ({ force = false } = {}) => {
 	const cachedPayload = getCachedPayload();
 	if (cachedPayload && !shouldFetchRemote(cachedPayload, force)) {
@@ -129,6 +134,10 @@ export const loadGlobalNotices = async ({ force = false } = {}) => {
 	return inFlightRequest;
 };
 
+/**
+ * 记录用户已关闭的公告，后续拉取时直接过滤掉。
+ * @param {string} noticeId 公告 id
+ */
 export const dismissGlobalNotice = (noticeId) => {
 	if (!noticeId) return;
 	const ids = getDismissedIds();
@@ -189,6 +198,11 @@ const schedulePlaybackAdvance = (items = []) => {
 	}, currentNoticeDurationMs);
 };
 
+/**
+ * 同步全局公告播放状态，让不同页面共用同一条公告与同一播放进度。
+ * @param {Array<{ id: string, content: string }>} items 当前可展示的公告列表
+ * @returns {{ index: number, startedAt: number, durationMs: number }}
+ */
 export const syncNoticePlayback = (items = []) => {
 	if (!Array.isArray(items) || !items.length) {
 		currentNoticeIndex = 0;
@@ -229,6 +243,11 @@ export const syncNoticePlayback = (items = []) => {
 	};
 };
 
+/**
+ * 订阅公告播放状态变化，页面切换时复用同一份进度。
+ * @param {(snapshot: { index: number, startedAt: number, durationMs: number }) => void} listener 监听回调
+ * @returns {() => void}
+ */
 export const subscribeNoticePlayback = (listener) => {
 	if (typeof listener !== 'function') {
 		return () => {};

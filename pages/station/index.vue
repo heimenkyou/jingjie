@@ -75,6 +75,7 @@ import {
 	shouldShowManualBrightnessHint,
 	toggleSceneBrightness
 } from '@/utils/brightness.js';
+import { STATION_LOG_PREFIX } from '@/utils/stationLog.js';
 import { flushWebviewCookies } from '@/utils/webviewCookies.js';
 
 const HEADER_HEIGHT = 44;
@@ -83,6 +84,7 @@ const BRIGHTNESS_CONTROL_HEIGHT = 48;
 const systemInfo = uni.getSystemInfoSync();
 const statusBarHeight = systemInfo.statusBarHeight || 0;
 const headerTotalHeight = statusBarHeight + HEADER_HEIGHT;
+const STATION_CACHE_GUARD_EVAL = `(function(){var suffix='-cache--/wow/z/uniapp/1100333/last-mile-fe/m-end-school-tab/home';var count=0;try{for(var index=window.localStorage.length-1;index>=0;index-=1){var key=window.localStorage.key(index);if(typeof key==='string'&&key.indexOf(suffix)!==-1){window.localStorage.removeItem(key);count+=1}}if(count){console.log('${STATION_LOG_PREFIX}','已清理驿站首页快照缓存:',count)}}catch(error){console.warn('${STATION_LOG_PREFIX}','清理驿站首页快照缓存失败:',error)}})();`;
 const SAME_TAB_WINDOW_OPEN_BRIDGE_PATH = '_www/static/station-window-open-same-tab.js';
 const SAME_TAB_WINDOW_OPEN_BRIDGE_EVAL = `(function(){if(window.__jingjieSameTabWindowOpenInstalled)return;window.__jingjieSameTabWindowOpenInstalled=true;var originalOpen=typeof window.open==='function'?window.open.bind(window):null;function normalizeUrl(url){if(!url)return '';try{return new URL(url,window.location.href).toString()}catch(error){return String(url)}}function navigateInSameTab(url){var targetUrl=normalizeUrl(url);if(!targetUrl)return null;window.location.assign(targetUrl);return null}window.open=function(url,target,features){if(target==='_blank'||target===''||target==null){return navigateInSameTab(url)}if(target==='_self'){return navigateInSameTab(url)}return originalOpen?originalOpen(url,target,features):navigateInSameTab(url)}})();`;
 
@@ -104,10 +106,19 @@ const stationPages = [
 	}
 ];
 
+/**
+ * 根据 tab 标识获取对应的驿站页面配置。
+ * @param {string} key 驿站页面标识
+ * @returns {{ key: string, label: string, url: string }}
+ */
 const getPageByKey = (key) => {
 	return stationPages.find(item => item.key === key) || stationPages[0];
 };
 
+/**
+ * 读取本地保存的驿站默认页，并兜底到合法值。
+ * @returns {string}
+ */
 const getStoredDefaultKey = () => {
 	const key = uni.getStorageSync('stationDefaultPage') || 'identity';
 	return stationPages.some(item => item.key === key) ? key : 'identity';
@@ -258,6 +269,10 @@ const clearBrightnessNotice = () => {
 };
 
 // #ifdef APP-PLUS
+/**
+ * 获取当前 uni 页面对应的原生宿主 WebView。
+ * @returns {PlusWebviewWebviewObject | null}
+ */
 const getCurrentAppWebview = () => {
 	const pages = getCurrentPages();
 	const currentUniPage = pages[pages.length - 1];
@@ -266,10 +281,19 @@ const getCurrentAppWebview = () => {
 		: null;
 };
 
+/**
+ * 生成驿站子 WebView 的固定 id，便于复用和排查。
+ * @param {string} key 驿站页面标识
+ * @returns {string}
+ */
 const getChildWebviewId = (key) => {
 	return `station-child-${key}`;
 };
 
+/**
+ * 计算驿站子 WebView 的原生布局，给顶部工具栏和底部控件留出空间。
+ * @returns {Record<string, unknown>}
+ */
 const getChildWebviewStyle = () => {
 	return {
 		top: `${headerTotalHeight}px`,
@@ -285,6 +309,11 @@ const getChildWebviewStyle = () => {
 	};
 };
 
+/**
+ * 给子 WebView 注入驿站专用脚本。
+ * 先按需清理首页旧壳缓存，再补同页跳转桥接。
+ * @param {PlusWebviewWebviewObject | null | undefined} webview 子 WebView
+ */
 const bindSameTabWindowOpenBridge = (webview) => {
 	if (!webview) return;
 
@@ -293,21 +322,33 @@ const bindSameTabWindowOpenBridge = (webview) => {
 	}
 
 	if (typeof webview.evalJS === 'function') {
+		webview.evalJS(STATION_CACHE_GUARD_EVAL);
 		webview.evalJS(SAME_TAB_WINDOW_OPEN_BRIDGE_EVAL);
 	}
 };
 
+/**
+ * 页面恢复显示后，给所有存活中的子 WebView 重新补注入脚本。
+ */
 const rebindAllSameTabWindowOpenBridges = () => {
 	childWebviews.forEach((child) => {
 		bindSameTabWindowOpenBridge(child);
 	});
 };
 
+/**
+ * 仅在当前 tab 上同步加载态，避免隐藏页事件误改头部状态。
+ * @param {string} key 驿站页面标识
+ */
 const setCurrentLoadingByKey = (key) => {
 	if (currentKey.value !== key) return;
 	isLoading.value = !pageLoadedSet.has(key);
 };
 
+/**
+ * 刷新当前 tab 的返回能力缓存，保证系统返回键行为正确。
+ * @param {string} key 驿站页面标识
+ */
 const refreshCanBackState = (key) => {
 	const child = childWebviews.get(key);
 	if (!child || typeof child.canBack !== 'function') {
@@ -320,6 +361,12 @@ const refreshCanBackState = (key) => {
 	});
 };
 
+/**
+ * 绑定子 WebView 的加载事件。
+ * 这里顺手补脚本注入和 Cookie 落盘，尽量让前后台状态更稳定。
+ * @param {string} key 驿站页面标识
+ * @param {PlusWebviewWebviewObject} webview 子 WebView
+ */
 const bindChildWebviewEvents = (key, webview) => {
 	webview.addEventListener('loading', () => {
 		if (currentKey.value === key) {
@@ -348,6 +395,11 @@ const bindChildWebviewEvents = (key, webview) => {
 	});
 };
 
+/**
+ * 创建指定 tab 的原生子 WebView。
+ * @param {string} key 驿站页面标识
+ * @returns {PlusWebviewWebviewObject | null}
+ */
 const createChildWebview = (key) => {
 	if (childWebviews.has(key)) return childWebviews.get(key);
 	if (!parentWebview || typeof plus === 'undefined') return null;
@@ -359,7 +411,7 @@ const createChildWebview = (key) => {
 		try {
 			existing.close('none');
 		} catch (error) {
-			console.warn('关闭旧驿站子窗口失败:', error);
+			console.warn(STATION_LOG_PREFIX, '关闭旧驿站子窗口失败:', error);
 		}
 	}
 
@@ -373,10 +425,18 @@ const createChildWebview = (key) => {
 	return child;
 };
 
+/**
+ * 确保目标 tab 的子 WebView 已存在。
+ * @param {string} key 驿站页面标识
+ * @returns {PlusWebviewWebviewObject | null}
+ */
 const ensureChildWebview = (key) => {
 	return childWebviews.get(key) || createChildWebview(key);
 };
 
+/**
+ * 切换三个驿站子页面的显隐，只保留当前 tab 可见。
+ */
 const syncChildVisibility = () => {
 	childWebviews.forEach((child, key) => {
 		if (key === currentKey.value) {
@@ -388,6 +448,9 @@ const syncChildVisibility = () => {
 	});
 };
 
+/**
+ * 首次进入驿站页时初始化当前 tab 对应的原生子 WebView。
+ */
 const initAppWebviews = () => {
 	parentWebview = getCurrentAppWebview();
 	if (!parentWebview) return;
@@ -397,6 +460,10 @@ const initAppWebviews = () => {
 	setCurrentLoadingByKey(currentKey.value);
 };
 
+/**
+ * 刷新当前原生子 WebView。
+ * @returns {boolean}
+ */
 const reloadNativeWebview = () => {
 	const active = childWebviews.get(currentKey.value);
 	if (!active) return false;
@@ -407,12 +474,15 @@ const reloadNativeWebview = () => {
 	return true;
 };
 
+/**
+ * 关闭并释放所有驿站子 WebView。
+ */
 const closeAllChildren = () => {
 	childWebviews.forEach((child) => {
 		try {
 			child.close('none');
 		} catch (error) {
-			console.warn('关闭驿站子窗口失败:', error);
+			console.warn(STATION_LOG_PREFIX, '关闭驿站子窗口失败:', error);
 		}
 	});
 	childWebviews.clear();
@@ -422,6 +492,10 @@ const closeAllChildren = () => {
 };
 // #endif
 
+/**
+ * 切换当前驿站 tab。
+ * @param {string} key 驿站页面标识
+ */
 const switchPage = (key) => {
 	if (currentKey.value === key) return;
 	currentKey.value = key;
@@ -439,6 +513,10 @@ const switchPage = (key) => {
 	// #endif
 };
 
+/**
+ * 刷新当前驿站页内容。
+ * App 端优先刷新原生子 WebView，H5 端回退到重设 src。
+ */
 const reloadWebview = () => {
 	flushWebviewCookies();
 
@@ -454,12 +532,18 @@ const reloadWebview = () => {
 	}, 0);
 };
 
+/**
+ * H5 端 WebView 加载完成后的收尾处理。
+ */
 const handleFallbackLoad = () => {
 	isLoading.value = false;
 	flushWebviewCookies();
 	uni.stopPullDownRefresh();
 };
 
+/**
+ * H5 端 WebView 加载失败时给出统一提示。
+ */
 const handleFallbackError = () => {
 	isLoading.value = false;
 	uni.stopPullDownRefresh();

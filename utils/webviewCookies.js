@@ -1,3 +1,8 @@
+import { STATION_LOG_PREFIX } from '@/utils/stationLog.js';
+
+/**
+ * 将当前 Android WebView 的 Cookie 及时落盘，减少前后台切换时的状态丢失。
+ */
 export const flushWebviewCookies = () => {
 	// #ifdef APP-PLUS
 	if (typeof plus === 'undefined' || plus.os?.name !== 'Android') return;
@@ -6,14 +11,17 @@ export const flushWebviewCookies = () => {
 		const CookieManager = plus.android.importClass('android.webkit.CookieManager');
 		const cookieManager = CookieManager.getInstance();
 		plus.android.importClass(cookieManager);
-		console.log('同步 WebView Cookie');
+		console.log(STATION_LOG_PREFIX, '同步 WebView Cookie');
 		cookieManager.flush();
 	} catch (error) {
-		console.warn('同步 WebView Cookie 失败:', error);
+		console.warn(STATION_LOG_PREFIX, '同步 WebView Cookie 失败:', error);
 	}
 	// #endif
 };
 
+/**
+ * 清理 WebView 站点数据与登录态，作为驿站页异常时的保底恢复手段。
+ */
 export const clearWebviewSiteData = () => {
 	// #ifdef APP-PLUS
 	if (typeof plus === 'undefined' || plus.os?.name !== 'Android') return;
@@ -44,9 +52,9 @@ export const clearWebviewSiteData = () => {
 		plus.android.importClass(webStorage);
 		webStorage.deleteAllData();
 
-		console.log('已清理 WebView 站点数据与 Cookie');
+		console.log(STATION_LOG_PREFIX, '已清理 WebView 站点数据与 Cookie');
 	} catch (error) {
-		console.warn('清理 WebView 站点数据失败:', error);
+		console.warn(STATION_LOG_PREFIX, '清理 WebView 站点数据失败:', error);
 	}
 	// #endif
 };
