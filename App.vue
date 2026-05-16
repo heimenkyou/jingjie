@@ -15,7 +15,7 @@
 		const lastVersion = uni.getStorageSync(STORAGE_KEYS.appDataVersion) || '';
 		if (lastVersion === APP_DATA_VERSION) return;
 
-		clearWebviewSiteData();
+		// clearWebviewSiteData(); // 不清了
 		uni.setStorageSync(STORAGE_KEYS.appDataVersion, APP_DATA_VERSION);
 		console.log(STATION_LOG_PREFIX, `已完成版本迁移清理: ${lastVersion || 'none'} -> ${APP_DATA_VERSION}`);
 	};
