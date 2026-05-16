@@ -130,6 +130,12 @@
 								</view>
 							</view>
 						</view>
+
+						<view class="download-stat">
+							<text class="download-stat-icon">📦</text>
+							<text class="download-stat-label">累计下载</text>
+							<text class="download-stat-count">{{ downloadCount ?? '…' }}</text>
+						</view>
 					</view>
 				</view>
 			</view>
@@ -145,7 +151,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 // #ifdef APP-PLUS
 import GlobalNoticeBar from '@/components/GlobalNoticeBar.vue';
@@ -163,6 +169,7 @@ const stationDefaultPage = ref(DEFAULT_STATION_PAGE);
 const viewerAutoBrightnessEnabled = ref(false);
 const stationAutoBrightnessEnabled = ref(false);
 const otherExpanded = ref(false);
+const downloadCount = ref(null);
 const barcodes = ref([]);
 const defaultBarcodeId = ref('');
 
@@ -526,9 +533,33 @@ const openSourceLink = (platform) => {
 	// #endif
 };
 
+/**
+ * 从 webhook 查询接口获取累计下载量。
+ * 接口有 180s 缓存，无需频繁调用。
+ */
+const loadDownloadCount = () => {
+	uni.request({
+		url: 'https://webhook.luowb.cn/hooks/jingjie-download-query',
+		method: 'GET',
+		success: (res) => {
+			const data = typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
+			if (data?.message !== undefined) {
+				downloadCount.value = data.message;
+			}
+		},
+		fail: (err) => {
+			console.warn('[settings] 下载量查询失败', err);
+		}
+	});
+};
+
 onShow(() => {
 	// 设置页作为配置中心，每次显示都重新读取最新偏好。
 	loadPreferences();
+});
+
+onMounted(() => {
+	loadDownloadCount();
 });
 </script>
 
@@ -840,5 +871,33 @@ onShow(() => {
 	width: 28px;
 	height: 28px;
 	display: block;
+}
+
+.download-stat {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 5px;
+	margin-top: 10px;
+	padding: 8px 14px;
+	background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 182, 212, 0.08) 100%);
+	border: 1px solid rgba(16, 185, 129, 0.15);
+	border-radius: 999px;
+	align-self: center;
+}
+
+.download-stat-icon {
+	font-size: 13px;
+}
+
+.download-stat-label {
+	font-size: 12px;
+	color: #6b7280;
+}
+
+.download-stat-count {
+	font-size: 13px;
+	font-weight: 700;
+	color: #10b981;
 }
 </style>

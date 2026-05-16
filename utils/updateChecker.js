@@ -10,6 +10,7 @@ const STORAGE_KEYS = {
 };
 
 let isChecking = false;
+let isDownloading = false;
 let pendingForceUpdate = null;
 let isUpdateDialogVisible = false;
 
@@ -35,35 +36,87 @@ const shouldSkipSilentCheck = () => {
 	return Date.now() - lastCheckAt < CHECK_INTERVAL;
 };
 
-const openDownloadUrl = (url) => {
-	if (!url) return;
-
-	// #ifdef APP-PLUS
-	plus.runtime.openURL(url);
-	// #endif
-
-	// #ifdef H5
-	window.open(url, '_blank');
-	// #endif
+// #ifdef APP-PLUS
+/**
+ * 异步上报一次下载事件，失败只记日志，不阻塞主流程。
+ */
+const reportDownload = () => {
+	uni.request({
+		url: 'https://webhook.luowb.cn/hooks/jingjie-download-inc',
+		method: 'GET',
+		fail: (err) => {
+			console.warn('[updateChecker] 下载量上报失败', err);
+		}
+	});
 };
 
-const showUpdateDialog = (info) => {
+/**
+ * 静默后台下载 APK，resolve 本地文件路径，下载失败 resolve null（降级处理）。
+ * 使用 plus.downloader 以正确跟随 302 重定向。
+ */
+const silentDownloadApk = (url) => new Promise((resolve) => {
+	if (isDownloading) {
+		resolve(null);
+		return;
+	}
+	isDownloading = true;
+
+	// 下载开始时上报，统计用户实际触发下载的次数
+	reportDownload();
+
+	const task = plus.downloader.createDownload(
+		url,
+		{ filename: '_downloads/update.apk' },
+		(download, status) => {
+			isDownloading = false;
+			resolve(status === 200 ? download.filename : null);
+		}
+	);
+
+	task.start();
+});
+// #endif
+
+/**
+ * 展示更新弹窗。
+ * @param {object} info - 服务端返回的更新信息
+ * @param {string|null} localFilePath - 已下载的 APK 本地路径；为 null 时降级跳浏览器
+ */
+const showUpdateDialog = (info, localFilePath = null) => {
 	if (isUpdateDialogVisible) return;
 
 	const title = info.title || `发现新版本 ${info.versionName}`;
 	const content = [info.date, info.log].filter(Boolean).join('\n\n');
+
+	// 已有本地包则直接安装，否则降级到浏览器下载
+	const confirmText = localFilePath ? '立即安装' : '去下载';
 
 	isUpdateDialogVisible = true;
 
 	uni.showModal({
 		title,
 		content,
-		confirmText: '去下载',
+		confirmText,
 		cancelText: '稍后',
 		showCancel: !info.force,
 		success: (res) => {
 			if (res.confirm) {
-				openDownloadUrl(info.url);
+				// #ifdef APP-PLUS
+				if (localFilePath) {
+					plus.runtime.install(
+						localFilePath,
+						{ force: false },
+						() => plus.runtime.quit(),
+						(err) => uni.showToast({ title: `安装失败: ${err.message}`, icon: 'none' })
+					);
+					return;
+				}
+				plus.runtime.openURL(info.url);
+				// #endif
+
+				// #ifdef H5
+				window.open(info.url, '_blank');
+				// #endif
 				return;
 			}
 
@@ -74,7 +127,7 @@ const showUpdateDialog = (info) => {
 
 			if (info.force) {
 				setTimeout(() => {
-					showUpdateDialog(info);
+					showUpdateDialog(info, localFilePath);
 				}, 1000);
 			}
 		}
@@ -101,7 +154,17 @@ export const checkForUpdate = async ({ silent = true, force = false } = {}) => {
 			if (data.force) {
 				pendingForceUpdate = data;
 			}
+
+			// #ifdef APP-PLUS
+			// 先静默下载，完成后再弹提示，用户无需等待
+			const localFilePath = await silentDownloadApk(data.url);
+			showUpdateDialog(data, localFilePath);
+			// #endif
+
+			// #ifdef H5
 			showUpdateDialog(data);
+			// #endif
+
 			return data;
 		}
 
