@@ -75,6 +75,21 @@
 					<text class="section-desc">缓存、更新、说明</text>
 				</view>
 
+				<view class="setting-row" @click="openContactLink('qqGroup')">
+					<text class="setting-row-title">加入官方交流群</text>
+					<view class="setting-row-value">
+						<text class="setting-row-text subtle">群号: 1106322115</text>
+						<text class="setting-row-arrow">></text>
+					</view>
+				</view>
+
+				<view class="setting-row" @click="openFeedbackModal">
+					<text class="setting-row-title">提交反馈与建议</text>
+					<view class="setting-row-value">
+						<text class="setting-row-arrow">></text>
+					</view>
+				</view>
+
 				<view class="setting-row" @click="handleClearStationCache">
 					<text class="setting-row-title">清理驿站缓存</text>
 					<view class="setting-row-value">
@@ -153,6 +168,26 @@
 				</view>
 			</view>
 		</view>
+		<!-- 反馈弹窗 -->
+		<view class="feedback-modal" v-if="showFeedbackModal">
+			<view class="feedback-mask" @click="closeFeedbackModal"></view>
+			<view class="feedback-content">
+				<view class="feedback-header">
+					<text class="feedback-title">意见反馈</text>
+					<text class="feedback-close" @click="closeFeedbackModal">×</text>
+				</view>
+				<view class="feedback-body">
+					<textarea class="feedback-textarea" v-model="feedbackForm.content" placeholder="请详细描述您遇到的问题或建议（支持换行）..." maxlength="500"></textarea>
+					<input class="feedback-input" v-model="feedbackForm.contact" placeholder="联系方式（QQ/微信/邮箱，选填）" />
+				</view>
+				<view class="feedback-footer">
+					<view class="feedback-btn-group">
+						<button class="feedback-btn secondary-btn" @click="openContactLink('qqGroup')">加群 1106322115</button>
+						<button class="feedback-btn primary-btn" :disabled="isSubmittingFeedback" @click="submitFeedback">提交</button>
+					</view>
+				</view>
+			</view>
+		</view>
 	</view>
 </template>
 
@@ -207,11 +242,60 @@ const stationDefaultOptions = [
 
 const contactLinks = {
 	qq: 'https://qm.qq.com/q/Hr6wc28uCO',
-	email: 'mailto:wenbin.lo@outlook.com'
+	email: 'mailto:wenbin.lo@outlook.com',
+	qqGroup: 'https://qm.qq.com/q/wUUN5BCtX2'
 };
 
 const wechatId = 'heimenkyou';
 const currentVersionName = APP_VERSION_NAME;
+
+const showFeedbackModal = ref(false);
+const feedbackForm = ref({
+	content: '',
+	contact: ''
+});
+const isSubmittingFeedback = ref(false);
+
+const openFeedbackModal = () => {
+	showFeedbackModal.value = true;
+};
+
+const closeFeedbackModal = () => {
+	showFeedbackModal.value = false;
+};
+
+const submitFeedback = () => {
+	if (!feedbackForm.value.content.trim()) {
+		uni.showToast({ title: '请输入反馈内容', icon: 'none' });
+		return;
+	}
+	
+	isSubmittingFeedback.value = true;
+	uni.request({
+		url: 'https://jingjie.luowb.cn/hooks/jingjie-feedback-submit',
+		method: 'POST',
+		header: {
+			'Content-Type': 'application/json'
+		},
+		data: {
+			content: feedbackForm.value.content,
+			contact: feedbackForm.value.contact,
+			version: currentVersionName
+		},
+		success: (res) => {
+			uni.showToast({ title: '提交成功，感谢您的反馈', icon: 'none' });
+			feedbackForm.value.content = '';
+			feedbackForm.value.contact = '';
+			showFeedbackModal.value = false;
+		},
+		fail: () => {
+			uni.showToast({ title: '提交失败，请重试', icon: 'none' });
+		},
+		complete: () => {
+			isSubmittingFeedback.value = false;
+		}
+	});
+};
 
 /**
  * 当前启动首选项对应的展示文字。
@@ -938,5 +1022,121 @@ onMounted(() => {
 	font-size: 12px;
 	font-weight: 700;
 	color: #10b981;
+}
+
+/* 弹窗相关 */
+.feedback-modal {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 999;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.feedback-mask {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.4);
+}
+
+.feedback-content {
+	position: relative;
+	width: 85%;
+	max-width: 340px;
+	background: #fff;
+	border-radius: 12px;
+	padding: 20px;
+	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+	z-index: 1000;
+}
+
+.feedback-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 16px;
+}
+
+.feedback-title {
+	font-size: 16px;
+	font-weight: 600;
+	color: #333;
+}
+
+.feedback-close {
+	font-size: 24px;
+	color: #999;
+	line-height: 1;
+	padding: 0 4px;
+}
+
+.feedback-textarea {
+	width: 100%;
+	height: 100px;
+	background: #f8f9fa;
+	border-radius: 8px;
+	padding: 10px;
+	font-size: 14px;
+	margin-bottom: 12px;
+	box-sizing: border-box;
+}
+
+.feedback-input {
+	width: 100%;
+	height: 40px;
+	background: #f8f9fa;
+	border-radius: 8px;
+	padding: 0 10px;
+	font-size: 14px;
+	margin-bottom: 20px;
+	box-sizing: border-box;
+}
+
+.feedback-footer {
+	display: flex;
+	justify-content: flex-end;
+}
+
+.feedback-btn-group {
+	display: flex;
+	gap: 12px;
+	width: 100%;
+}
+
+.feedback-btn {
+	flex: 1;
+	font-size: 14px;
+	border-radius: 8px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin: 0;
+	padding: 0;
+	height: 40px;
+}
+
+.feedback-btn::after {
+	border: none;
+}
+
+.secondary-btn {
+	background: #f3f4f6;
+	color: #4b5563;
+}
+
+.primary-btn {
+	background: #10b981;
+	color: #fff;
+}
+
+.primary-btn[disabled] {
+	opacity: 0.6;
 }
 </style>
