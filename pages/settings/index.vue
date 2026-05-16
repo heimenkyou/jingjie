@@ -6,6 +6,16 @@
 
 		<view class="header">
 			<text class="subtitle">下方有使用说明</text>
+			<view class="header-right">
+				<view class="download-stat">
+					<text class="download-stat-icon">📦</text>
+					<text class="download-stat-label">累计下载</text>
+					<text class="download-stat-count">{{ downloadCount ?? '…' }}</text>
+				</view>
+				<view class="share-btn" @click="goToShare">
+					<text class="share-btn-icon">分享</text>
+				</view>
+			</view>
 		</view>
 
 		<view class="settings-body">
@@ -131,11 +141,7 @@
 							</view>
 						</view>
 
-						<view class="download-stat">
-							<text class="download-stat-icon">📦</text>
-							<text class="download-stat-label">累计下载</text>
-							<text class="download-stat-count">{{ downloadCount ?? '…' }}</text>
-						</view>
+
 					</view>
 				</view>
 			</view>
@@ -417,6 +423,15 @@ const copyWechat = () => {
 };
 
 /**
+ * 跳转到分享页。
+ */
+const goToShare = () => {
+	uni.navigateTo({
+		url: '/pages/share/index'
+	});
+};
+
+/**
  * 更新某个页面场景的自动点亮开关，并给出提示。
  * @param {string} scene 页面场景
  * @param {boolean} enabled 是否开启
@@ -574,6 +589,32 @@ onMounted(() => {
 
 .header {
 	padding: 10px 14px 4px;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.header-right {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.share-btn {
+	padding: 4px 12px;
+	background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+	border-radius: 999px;
+	box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+
+.share-btn:active {
+	opacity: 0.8;
+}
+
+.share-btn-icon {
+	font-size: 12px;
+	color: #ffffff;
+	font-weight: 500;
 }
 
 .subtitle {
@@ -877,26 +918,24 @@ onMounted(() => {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	gap: 5px;
-	margin-top: 10px;
-	padding: 8px 14px;
+	gap: 4px;
+	padding: 4px 10px;
 	background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 182, 212, 0.08) 100%);
 	border: 1px solid rgba(16, 185, 129, 0.15);
 	border-radius: 999px;
-	align-self: center;
 }
 
 .download-stat-icon {
-	font-size: 13px;
+	font-size: 11px;
 }
 
 .download-stat-label {
-	font-size: 12px;
+	font-size: 11px;
 	color: #6b7280;
 }
 
 .download-stat-count {
-	font-size: 13px;
+	font-size: 12px;
 	font-weight: 700;
 	color: #10b981;
 }

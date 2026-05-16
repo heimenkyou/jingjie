@@ -25,6 +25,12 @@
 			"style": {
 				"navigationBarTitleText": "设置"
 			}
+		},
+		{
+			"path": "pages/share/index",
+			"style": {
+				"navigationBarTitleText": "分享"
+			}
 		}
 	],
 	"globalStyle": {
