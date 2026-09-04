@@ -667,7 +667,9 @@ onMounted(() => {
 	display: flex;
 	flex-direction: column;
 	min-height: 100vh;
-	background-color: #f5f5f5;
+	background-image: linear-gradient(rgba(245, 245, 245, 0.72), rgba(245, 245, 245, 0.72)), url('/static/settings-background.webp');
+	background-position: center;
+	background-size: cover;
 	position: relative;
 }
 
