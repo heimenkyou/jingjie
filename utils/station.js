@@ -75,34 +75,38 @@ export const requestStationShortcut = (key) => {
 			return { success: false, reason: 'launcher' };
 		}
 
-		const intent = new Intent(Intent.ACTION_VIEW, Uri.parse(target.url));
-		const shortcutBuilder = new ShortcutInfoBuilder(activity, `station-${target.key}`);
-		shortcutBuilder.setShortLabel(target.label);
-		shortcutBuilder.setIntent(intent);
-		shortcutBuilder.setIcon(createShortcutIcon(target));
-		const shortcut = shortcutBuilder.build();
-		const shortcutId = `station-${target.key}`;
+		const shortcutIds = target.key === 'identity'
+			? ['station-identity-code', 'station-identity']
+			: [`station-${target.key}`];
+		const createShortcut = (shortcutId) => {
+			const intent = new Intent(Intent.ACTION_VIEW, Uri.parse(target.url));
+			const shortcutBuilder = new ShortcutInfoBuilder(activity, shortcutId);
+			shortcutBuilder.setShortLabel(target.label);
+			shortcutBuilder.setIntent(intent);
+			shortcutBuilder.setIcon(createShortcutIcon(target));
+			return shortcutBuilder.build();
+		};
 		const pinnedShortcuts = shortcutManager.getPinnedShortcuts();
 		plus.android.importClass(pinnedShortcuts);
-		let exists = false;
+		const existingShortcutIds = [];
 		for (let index = 0; index < pinnedShortcuts.size(); index += 1) {
 			const pinnedShortcut = pinnedShortcuts.get(index);
 			plus.android.importClass(pinnedShortcut);
-			if (pinnedShortcut.getId() === shortcutId) {
-				exists = true;
-				break;
+			const pinnedShortcutId = pinnedShortcut.getId();
+			if (shortcutIds.includes(pinnedShortcutId)) {
+				existingShortcutIds.push(pinnedShortcutId);
 			}
 		}
 
-		if (exists) {
+		if (existingShortcutIds.length) {
 			const ArrayList = plus.android.importClass('java.util.ArrayList');
 			const shortcuts = new ArrayList();
-			shortcuts.add(shortcut);
+			existingShortcutIds.forEach(shortcutId => shortcuts.add(createShortcut(shortcutId)));
 			shortcutManager.updateShortcuts(shortcuts);
 			return { success: true, updated: true };
 		}
 
-		shortcutManager.requestPinShortcut(shortcut, null);
+		shortcutManager.requestPinShortcut(createShortcut(shortcutIds[0]), null);
 		return { success: true };
 	} catch (error) {
 		console.warn('[station] 创建身份码快捷方式失败', error);
