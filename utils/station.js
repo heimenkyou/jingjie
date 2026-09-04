@@ -31,29 +31,20 @@ export const setStationAutoOpenTarget = (target) => {
 };
 
 /**
- * 绘制快捷方式图标，避免两个入口在桌面上难以区分。
+ * 读取与页面入口一致的快捷方式图标。
  * @param {{key: string}} target 驿站目标
  * @returns {android.graphics.drawable.Icon}
  */
 const createShortcutIcon = (target) => {
-	const Bitmap = plus.android.importClass('android.graphics.Bitmap');
-	const Canvas = plus.android.importClass('android.graphics.Canvas');
-	const Color = plus.android.importClass('android.graphics.Color');
-	const Paint = plus.android.importClass('android.graphics.Paint');
-	const bitmap = Bitmap.createBitmap(192, 192, Bitmap.Config.ARGB_8888);
-	const canvas = new Canvas(bitmap);
-	const paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-
-	paint.setColor(Color.parseColor(target.key === 'identity' ? '#3B91A8' : '#5E8D79'));
-	canvas.drawRoundRect(0, 0, 192, 192, 48, 48, paint);
-	paint.setColor(Color.WHITE);
-	paint.setTextSize(88);
-	paint.setTextAlign(Paint.Align.CENTER);
-	paint.setFakeBoldText(true);
-	canvas.drawText(target.key === 'identity' ? '码' : '站', 96, 126, paint);
-
 	const Icon = plus.android.importClass('android.graphics.drawable.Icon');
-	return Icon.createWithBitmap(bitmap);
+	const BitmapFactory = plus.android.importClass('android.graphics.BitmapFactory');
+	const iconPath = target.key === 'identity'
+		? '_www/static/barcode-icon-active.png'
+		: '_www/static/station-icon-active.png';
+	const bitmap = BitmapFactory.decodeFile(plus.io.convertLocalFileSystemURL(iconPath));
+	if (bitmap) return Icon.createWithBitmap(bitmap);
+
+	return Icon.createWithResource(plus.android.runtimeMainActivity(), plus.android.runtimeMainActivity().getApplicationInfo().icon);
 };
 
 /**
@@ -90,6 +81,26 @@ export const requestStationShortcut = (key) => {
 		shortcutBuilder.setIntent(intent);
 		shortcutBuilder.setIcon(createShortcutIcon(target));
 		const shortcut = shortcutBuilder.build();
+		const shortcutId = `station-${target.key}`;
+		const pinnedShortcuts = shortcutManager.getPinnedShortcuts();
+		plus.android.importClass(pinnedShortcuts);
+		let exists = false;
+		for (let index = 0; index < pinnedShortcuts.size(); index += 1) {
+			const pinnedShortcut = pinnedShortcuts.get(index);
+			plus.android.importClass(pinnedShortcut);
+			if (pinnedShortcut.getId() === shortcutId) {
+				exists = true;
+				break;
+			}
+		}
+
+		if (exists) {
+			const ArrayList = plus.android.importClass('java.util.ArrayList');
+			const shortcuts = new ArrayList();
+			shortcuts.add(shortcut);
+			shortcutManager.updateShortcuts(shortcuts);
+			return { success: true, updated: true };
+		}
 
 		shortcutManager.requestPinShortcut(shortcut, null);
 		return { success: true };

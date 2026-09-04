@@ -15,8 +15,8 @@
 				class="station-action"
 				@click="openTarget(target.key)"
 			>
-				<view class="station-action-icon" :class="`station-action-icon-${target.key}`">
-					<text>{{ target.icon }}</text>
+				<view class="station-action-icon">
+					<image class="station-action-image" :src="target.icon" mode="aspectFit"></image>
 				</view>
 				<view class="station-action-copy">
 					<text class="station-action-title">{{ target.title }}</text>
@@ -75,13 +75,13 @@ const stationTargets = [
 		...STATION_TARGETS.identity,
 		title: '身份码',
 		description: '点击卡片，跳转淘宝身份码',
-		icon: '码'
+		icon: '/static/barcode-icon-active.png'
 	},
 	{
 		...STATION_TARGETS.home,
 		title: '我的驿站',
 		description: '点击卡片，跳转淘宝查看包裹',
-		icon: '站'
+		icon: '/static/station-icon-active.png'
 	}
 ];
 
@@ -164,8 +164,10 @@ const addStationShortcut = () => {
 			const result = requestStationShortcut(target.key);
 			if (result.success) {
 				uni.showModal({
-					title: '快捷方式已创建',
-					content: '若桌面未出现，请在系统设置中允许净界创建桌面快捷方式后重试。',
+					title: result.updated ? '快捷方式已更新' : '快捷方式已创建',
+					content: result.updated
+						? '桌面图标和跳转目标已更新。'
+						: '若桌面未出现，请在系统设置中允许净界创建桌面快捷方式后重试。',
 					showCancel: false,
 					confirmText: '知道了'
 				});
@@ -263,18 +265,14 @@ onUnload(() => {
 	align-items: center;
 	justify-content: center;
 	border-radius: 14px;
-	font-size: 18px;
-	font-weight: 700;
-	color: #ffffff;
+	background: rgba(118, 198, 210, 0.16);
 	flex-shrink: 0;
 }
 
-.station-action-icon-identity {
-	background: linear-gradient(135deg, #3B91A8 0%, #76C6D2 100%);
-}
-
-.station-action-icon-home {
-	background: linear-gradient(135deg, #5E8D79 0%, #8DC7AD 100%);
+.station-action-image {
+	width: 25px;
+	height: 25px;
+	display: block;
 }
 
 .station-action-copy,
