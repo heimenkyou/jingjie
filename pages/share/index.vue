@@ -1,7 +1,7 @@
 <template>
 	<view class="share-container">
 		<view class="share-card">
-			<image class="qrcode-img" src="/static/share-qrcode.png" mode="widthFix" @longpress="handleLongPress"></image>
+			<image class="qrcode-img" src="/static/share.webp" mode="widthFix" @longpress="handleLongPress"></image>
 			<text class="share-tip">长按可保存二维码</text>
 		</view>
 	</view>
@@ -27,7 +27,7 @@ const handleLongPress = () => {
  */
 const saveImage = () => {
 	uni.saveImageToPhotosAlbum({
-		filePath: '/static/share-qrcode.png',
+		filePath: '/static/share.webp',
 		success: () => {
 			uni.showToast({
 				title: '已保存到相册',
