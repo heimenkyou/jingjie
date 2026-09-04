@@ -3,7 +3,7 @@ const STORAGE_KEY = 'stationAutoOpenTarget';
 export const STATION_TARGETS = {
 	identity: {
 		key: 'identity',
-		label: '淘宝身份码',
+		label: '身份码',
 		url: 'taobao://m.taobao.com/tbopen/index.html?h5Url=https://market.m.taobao.com/app/cn-yz/multi-activity/authCode.html'
 	},
 	home: {
@@ -31,12 +31,41 @@ export const setStationAutoOpenTarget = (target) => {
 };
 
 /**
- * 请求将身份码固定到 Android 桌面。
+ * 绘制快捷方式图标，避免两个入口在桌面上难以区分。
+ * @param {{key: string}} target 驿站目标
+ * @returns {android.graphics.drawable.Icon}
+ */
+const createShortcutIcon = (target) => {
+	const Bitmap = plus.android.importClass('android.graphics.Bitmap');
+	const Canvas = plus.android.importClass('android.graphics.Canvas');
+	const Color = plus.android.importClass('android.graphics.Color');
+	const Paint = plus.android.importClass('android.graphics.Paint');
+	const bitmap = Bitmap.createBitmap(192, 192, Bitmap.Config.ARGB_8888);
+	const canvas = new Canvas(bitmap);
+	const paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+	paint.setColor(Color.parseColor(target.key === 'identity' ? '#3B91A8' : '#5E8D79'));
+	canvas.drawRoundRect(0, 0, 192, 192, 48, 48, paint);
+	paint.setColor(Color.WHITE);
+	paint.setTextSize(88);
+	paint.setTextAlign(Paint.Align.CENTER);
+	paint.setFakeBoldText(true);
+	canvas.drawText(target.key === 'identity' ? '码' : '站', 96, 126, paint);
+
+	const Icon = plus.android.importClass('android.graphics.drawable.Icon');
+	return Icon.createWithBitmap(bitmap);
+};
+
+/**
+ * 请求将指定驿站入口固定到 Android 桌面。
+ * @param {string} key 驿站目标标识
  * @returns {{success: boolean, reason?: string}} 请求结果
  */
-export const requestIdentityShortcut = () => {
+export const requestStationShortcut = (key) => {
 	// #ifdef APP-PLUS
 	if (typeof plus === 'undefined' || !plus.android) return { success: false, reason: 'notApp' };
+	const target = STATION_TARGETS[key];
+	if (!target) return { success: false, reason: 'failed' };
 
 	try {
 		const activity = plus.android.runtimeMainActivity();
@@ -45,7 +74,6 @@ export const requestIdentityShortcut = () => {
 
 		const Intent = plus.android.importClass('android.content.Intent');
 		const Uri = plus.android.importClass('android.net.Uri');
-		const Icon = plus.android.importClass('android.graphics.drawable.Icon');
 		const ShortcutInfoBuilder = plus.android.importClass('android.content.pm.ShortcutInfo$Builder');
 		const shortcutManager = activity.getSystemService('shortcut');
 		if (!shortcutManager) {
@@ -56,12 +84,11 @@ export const requestIdentityShortcut = () => {
 			return { success: false, reason: 'launcher' };
 		}
 
-		const intent = new Intent(Intent.ACTION_VIEW, Uri.parse(STATION_TARGETS.identity.url));
-		const icon = Icon.createWithResource(activity, activity.getApplicationInfo().icon);
-		const shortcutBuilder = new ShortcutInfoBuilder(activity, 'station-identity-code');
-		shortcutBuilder.setShortLabel('淘宝身份码');
+		const intent = new Intent(Intent.ACTION_VIEW, Uri.parse(target.url));
+		const shortcutBuilder = new ShortcutInfoBuilder(activity, `station-${target.key}`);
+		shortcutBuilder.setShortLabel(target.label);
 		shortcutBuilder.setIntent(intent);
-		shortcutBuilder.setIcon(icon);
+		shortcutBuilder.setIcon(createShortcutIcon(target));
 		const shortcut = shortcutBuilder.build();
 
 		shortcutManager.requestPinShortcut(shortcut, null);

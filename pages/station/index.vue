@@ -30,10 +30,10 @@
 				</view>
 			</view>
 
-			<view class="shortcut-card" @click="addIdentityShortcut">
+			<view class="shortcut-card" @click="addStationShortcut">
 				<view class="shortcut-copy">
 					<text class="shortcut-title">经常取件？</text>
-					<text class="shortcut-desc">把身份码添加到桌面，一点即达</text>
+					<text class="shortcut-desc">把常用入口添加到桌面，一点即达</text>
 				</view>
 				<view class="shortcut-button">
 					<text>添加</text>
@@ -62,7 +62,7 @@ import GlobalNoticeBar from '@/components/GlobalNoticeBar.vue';
 // #endif
 import {
 	getStationAutoOpenTarget,
-	requestIdentityShortcut,
+	requestStationShortcut,
 	setStationAutoOpenTarget,
 	STATION_TARGETS
 } from '@/utils/station.js';
@@ -73,13 +73,13 @@ const statusBarHeight = systemInfo.statusBarHeight || 0;
 const stationTargets = [
 	{
 		...STATION_TARGETS.identity,
-		title: '出示身份码',
+		title: '身份码',
 		description: '点击卡片，跳转淘宝身份码',
 		icon: '码'
 	},
 	{
 		...STATION_TARGETS.home,
-		title: '打开我的驿站',
+		title: '我的驿站',
 		description: '点击卡片，跳转淘宝查看包裹',
 		icon: '站'
 	}
@@ -152,19 +152,35 @@ const toggleAutoOpen = (key) => {
 };
 
 /**
- * 请求系统将身份码固定到桌面。
+ * 选择并请求创建桌面快捷方式。
  */
-const addIdentityShortcut = () => {
-	const result = requestIdentityShortcut();
-	if (result.success) return;
+const addStationShortcut = () => {
+	uni.showActionSheet({
+		itemList: stationTargets.map(target => target.title),
+		success: (event) => {
+			const target = stationTargets[event.tapIndex];
+			if (!target) return;
 
-	const messages = {
-		notApp: '仅支持在 Android 应用内添加',
-		version: '系统版本不支持添加快捷方式',
-		launcher: '当前桌面不支持添加快捷方式',
-		failed: '创建快捷方式失败，请查看运行日志'
-	};
-	uni.showToast({ title: messages[result.reason] || messages.failed, icon: 'none' });
+			const result = requestStationShortcut(target.key);
+			if (result.success) {
+				uni.showModal({
+					title: '快捷方式已创建',
+					content: '若桌面未出现，请在系统设置中允许净界创建桌面快捷方式后重试。',
+					showCancel: false,
+					confirmText: '知道了'
+				});
+				return;
+			}
+
+			const messages = {
+				notApp: '仅支持在 Android 应用内添加',
+				version: '系统版本不支持添加快捷方式',
+				launcher: '当前桌面不支持添加快捷方式',
+				failed: '创建快捷方式失败，请查看运行日志'
+			};
+			uni.showToast({ title: messages[result.reason] || messages.failed, icon: 'none' });
+		}
+	});
 };
 
 onLoad(() => {
