@@ -435,8 +435,27 @@ onHide(() => {
 	justify-content: center;
 	height: 100vh;
 	width: 100vw;
-	background-color: #000;
+	background-color: #F3F7FA;
+	background-image: url('/static/settings-background.webp');
+	background-position: center;
+	background-size: auto 100vh;
+	background-repeat: no-repeat;
+	background-attachment: fixed;
 	position: relative;
+	overflow: hidden;
+}
+
+.container::before {
+	content: '';
+	position: fixed;
+	inset: -14px;
+	z-index: 0;
+	background-color: #F3F7FA;
+	background-image: url('/static/settings-background.webp');
+	background-position: center;
+	background-size: auto 100vh;
+	background-repeat: no-repeat;
+	filter: blur(10px);
 }
 
 .brightness-toggle {
@@ -471,6 +490,8 @@ onHide(() => {
 }
 
 .swiper {
+	position: relative;
+	z-index: 1;
 	height: 100%;
 	width: 100%;
 }
@@ -551,48 +572,47 @@ onHide(() => {
 
 /* 引导卡片 */
 .onboarding-card {
-	background: linear-gradient(135deg, rgba(59, 145, 168, 0.18) 0%, rgba(118, 198, 210, 0.18) 100%);
-	backdrop-filter: blur(20px);
-	border-radius: 24px;
-	padding: 32px 24px;
+	background: rgba(255, 255, 255, 0.82);
+	border-radius: 16px;
+	padding: 24px 20px;
 	width: 100%;
 	max-width: 100%;
 	box-sizing: border-box;
-	border: 1px solid rgba(255, 255, 255, 0.1);
+	border: 1px solid rgba(59, 145, 168, 0.16);
+	box-shadow: 0 3px 10px rgba(36, 52, 71, 0.06);
 }
 
 .card-title {
-	font-size: 24px;
-	font-weight: bold;
-	color: #fff;
+	font-size: 20px;
+	font-weight: 700;
+	color: #243447;
 	display: block;
-	margin-bottom: 28px;
-	text-align: center;
+	margin-bottom: 22px;
 }
 
 .steps {
-	margin-bottom: 24px;
+	margin-bottom: 18px;
 }
 
 .step-item {
 	display: flex;
-	margin-bottom: 20px;
+	margin-bottom: 16px;
 	align-items: flex-start;
 }
 
 .step-number {
-	width: 32px;
-	height: 32px;
+	width: 28px;
+	height: 28px;
 	background: linear-gradient(135deg, #3B91A8 0%, #76C6D2 100%);
 	border-radius: 50%;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	font-size: 16px;
+	font-size: 14px;
 	font-weight: bold;
 	color: #fff;
 	flex-shrink: 0;
-	margin-right: 16px;
+	margin-right: 12px;
 }
 
 .step-content {
@@ -601,24 +621,24 @@ onHide(() => {
 }
 
 .step-line {
-	font-size: 15px;
+	font-size: 14px;
 	font-weight: 500;
-	color: rgba(255, 255, 255, 0.8);
+	color: #243447;
 	line-height: 1.6;
 	display: block;
 }
 
 .note {
-	background: rgba(59, 145, 168, 0.18);
+	background: rgba(118, 198, 210, 0.14);
 	border-left: 3px solid #3B91A8;
-	padding: 12px 16px;
+	padding: 10px 12px;
 	border-radius: 14px;
-	margin-bottom: 24px;
+	margin-bottom: 18px;
 }
 
 .note-text {
 	font-size: 13px;
-	color: rgba(255, 255, 255, 0.85);
+	color: #68798A;
 	line-height: 1.5;
 }
 
@@ -627,8 +647,8 @@ onHide(() => {
 	background: linear-gradient(135deg, #3B91A8 0%, #76C6D2 100%);
 	color: #fff;
 	border: none;
-	border-radius: 16px;
-	font-size: 17px;
+	border-radius: 14px;
+	font-size: 16px;
 	font-weight: 600;
 	padding: 16px;
 	box-shadow: 0 4px 12px rgba(59, 145, 168, 0.16);
