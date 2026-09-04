@@ -4,7 +4,7 @@ export const STATION_TARGETS = {
 	identity: {
 		key: 'identity',
 		label: '身份码',
-		url: 'taobao://m.taobao.com/tbopen/index.html?h5Url=https://market.m.taobao.com/app/cn-yz/multi-activity/authCode.html'
+		url: 'taobao://m.taobao.com/tbopen/index.html?h5Url=https://pages-fast.m.taobao.com/wow/z/uniapp/1100410/last-mile-fe/m-end-identity-code/home'
 	},
 	home: {
 		key: 'home',
