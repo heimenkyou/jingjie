@@ -55,11 +55,11 @@
 							<text class="notice-slide-content">{{ item.content }}</text>
 							<view class="notice-slide-actions">
 								<button
-									v-if="item.link"
+									v-if="item.action"
 									class="notice-action notice-action-primary"
-									@click="openNoticeLink(item.link)"
+									@click="openNoticeAction(item.action)"
 								>
-									前往查看
+									{{ item.action.label || '前往查看' }}
 								</button>
 								<button
 									v-if="item.allowDismiss"
@@ -80,7 +80,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { onHide, onShow } from '@dcloudio/uni-app';
-import { dismissGlobalNotice, loadGlobalNotices } from '@/utils/notices.js';
+import { dismissGlobalNotice, executeNoticeAction, loadGlobalNotices } from '@/utils/notices.js';
 
 const props = defineProps({
 	bottom: {
@@ -161,30 +161,12 @@ const getNoticeIndex = (noticeId) => {
 };
 
 /**
- * 打开公告附带的链接。
- * @param {string} link 跳转链接
+ * 执行公告声明的动作。
+ * @param {{ type: string, url: string }} action 已校验的公告动作
  */
-const openNoticeLink = (link) => {
-	if (!link) return;
-
-	if (link === 'jingjie://page/settings') {
-		closeDialog();
-		uni.switchTab({
-			url: '/pages/settings/index'
-		});
-		return;
-	}
-
-	// #ifdef APP-PLUS
-	if (typeof plus !== 'undefined' && plus.runtime?.openURL) {
-		plus.runtime.openURL(link);
-		return;
-	}
-	// #endif
-
-	// #ifdef H5
-	window.location.href = link;
-	// #endif
+const openNoticeAction = (action) => {
+	closeDialog();
+	executeNoticeAction(action);
 };
 
 /**
