@@ -1,928 +1,411 @@
 <template>
 	<view class="station-page">
-		<view class="station-header" :style="headerStyle">
-			<view class="toolbar">
-				<view class="segment">
-					<view
-						v-for="item in stationPages"
-						:key="item.key"
-						class="segment-item"
-						:class="{ active: currentKey === item.key, loading: isLoading && currentKey === item.key }"
-						@click="switchPage(item.key)"
-					>
-						<text class="segment-text">{{ item.label }}</text>
+		<!-- #ifdef APP-PLUS -->
+		<GlobalNoticeBar />
+		<!-- #endif -->
+
+		<view class="station-content" :style="contentStyle">
+			<view class="page-heading">
+				<text class="page-title">驿站</text>
+			</view>
+
+			<view
+				v-for="target in stationTargets"
+				:key="target.key"
+				class="station-action"
+				@click="openTarget(target.key)"
+			>
+				<view class="station-action-icon" :class="`station-action-icon-${target.key}`">
+					<text>{{ target.icon }}</text>
+				</view>
+				<view class="station-action-copy">
+					<text class="station-action-title">{{ target.title }}</text>
+					<text class="station-action-desc">{{ target.description }}</text>
+				</view>
+				<view class="auto-open-control" @click.stop="toggleAutoOpen(target.key)">
+					<text class="auto-open-label">自动跳转</text>
+					<view class="auto-open-switch" :class="{ active: autoOpenTarget === target.key }">
+						<view class="auto-open-knob"></view>
 					</view>
 				</view>
-				<button class="refresh-button" @click="reloadWebview">刷新</button>
 			</view>
-			<view class="loading-line" v-if="isLoading">
-				<view class="loading-dot"></view>
-				<text class="loading-text">正在打开{{ currentLabel }}...</text>
+
+			<view class="shortcut-card" @click="addIdentityShortcut">
+				<view class="shortcut-copy">
+					<text class="shortcut-title">经常取件？</text>
+					<text class="shortcut-desc">把身份码添加到桌面，一点即达</text>
+				</view>
+				<view class="shortcut-button">
+					<text>添加</text>
+				</view>
 			</view>
 		</view>
 
-		<!-- #ifdef APP-PLUS -->
-		<GlobalNoticeBar :z-index="35" @dialog-change="handleNoticeDialogChange" />
-		<!-- #endif -->
-
-		<view
-			class="brightness-toggle"
-			:class="{ active: isBrightnessBoosted }"
-			@click="handleBrightnessToggle"
-		>
-			<text class="brightness-toggle-icon">{{ isBrightnessBoosted ? '☀' : '◐' }}</text>
-			<text class="brightness-toggle-text">{{ isBrightnessBoosted ? '恢复亮度' : '点亮屏幕' }}</text>
+		<view class="opening-mask" v-if="openingTarget">
+			<view class="opening-dialog">
+				<view class="opening-dot"></view>
+				<text class="opening-title">正在打开{{ openingTarget.title }}</text>
+				<text class="opening-desc">即将跳转到淘宝</text>
+				<view class="cancel-button" @click="cancelOpening">
+					<text>取消</text>
+				</view>
+			</view>
 		</view>
-
-		<!-- #ifdef APP-PLUS -->
-		<view class="native-webview-shell" :style="webShellStyle"></view>
-		<!-- #endif -->
-
-		<!-- #ifndef APP-PLUS -->
-		<view class="web-shell" :style="webShellStyle">
-			<web-view
-				id="stationWebviewFallback"
-				class="station-webview"
-				:src="fallbackSrc"
-				:webview-styles="fallbackWebviewStyles"
-				@load="handleFallbackLoad"
-				@error="handleFallbackError"
-			></web-view>
-		</view>
-		<!-- #endif -->
-
-		<!-- #ifndef APP-PLUS -->
-		<view class="brightness-tip" v-if="showBrightnessTip">
-			<text class="tip-text">{{ brightnessTipText }}</text>
-		</view>
-		<!-- #endif -->
 	</view>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue';
-import { onBackPress, onHide, onLoad, onReady, onShow, onUnload } from '@dcloudio/uni-app';
+import { onHide, onLoad, onShow, onUnload } from '@dcloudio/uni-app';
 // #ifdef APP-PLUS
 import GlobalNoticeBar from '@/components/GlobalNoticeBar.vue';
 // #endif
 import {
-	BRIGHTNESS_SCENES,
-	boostSceneBrightness,
-	isSceneAutoBrightnessEnabled,
-	isSceneBrightnessBoosted,
-	markManualBrightnessHintShown,
-	restoreSceneBrightness,
-	shouldShowManualBrightnessHint,
-	toggleSceneBrightness
-} from '@/utils/brightness.js';
-import { STATION_LOG_PREFIX } from '@/utils/stationLog.js';
-import { flushWebviewCookies } from '@/utils/webviewCookies.js';
+	getStationAutoOpenTarget,
+	requestIdentityShortcut,
+	setStationAutoOpenTarget,
+	STATION_TARGETS
+} from '@/utils/station.js';
 
-const HEADER_HEIGHT = 44;
-const NOTICE_BAR_HEIGHT = 32;
-const BRIGHTNESS_CONTROL_HEIGHT = 48;
-const DEFAULT_STATION_PAGE_KEY = 'home';
+const AUTO_OPEN_DELAY = 450;
 const systemInfo = uni.getSystemInfoSync();
 const statusBarHeight = systemInfo.statusBarHeight || 0;
-const headerTotalHeight = statusBarHeight + HEADER_HEIGHT;
-const STATION_CACHE_GUARD_EVAL = `(function(){var suffix='-cache--/wow/z/uniapp/1100333/last-mile-fe/m-end-school-tab/home';var count=0;try{for(var index=window.localStorage.length-1;index>=0;index-=1){var key=window.localStorage.key(index);if(typeof key==='string'&&key.indexOf(suffix)!==-1){window.localStorage.removeItem(key);count+=1}}if(count){console.log('${STATION_LOG_PREFIX}','已清理驿站首页快照缓存:',count)}}catch(error){console.warn('${STATION_LOG_PREFIX}','清理驿站首页快照缓存失败:',error)}})();`;
-const SAME_TAB_WINDOW_OPEN_BRIDGE_PATH = '_www/static/station-window-open-same-tab.js';
-const SAME_TAB_WINDOW_OPEN_BRIDGE_EVAL = `(function(){if(window.__jingjieSameTabWindowOpenInstalled)return;window.__jingjieSameTabWindowOpenInstalled=true;var originalOpen=typeof window.open==='function'?window.open.bind(window):null;function normalizeUrl(url){if(!url)return '';try{return new URL(url,window.location.href).toString()}catch(error){return String(url)}}function navigateInSameTab(url){var targetUrl=normalizeUrl(url);if(!targetUrl)return null;window.location.assign(targetUrl);return null}window.open=function(url,target,features){if(target==='_blank'||target===''||target==null){return navigateInSameTab(url)}if(target==='_self'){return navigateInSameTab(url)}return originalOpen?originalOpen(url,target,features):navigateInSameTab(url)}})();`;
-const STATION_RESOURCE_REDIRECTS = [
-	{ match: '.*log\\.mmstat\\.com.*', redirect: '_www/static/empty.js' },
-	{ match: '.*wgo\\.mmstat\\.com.*', redirect: '_www/static/empty.js' },
-	{ match: '.*gm\\.mmstat\\.com.*', redirect: '_www/static/empty.js' }
-];
-
-const stationPages = [
+const stationTargets = [
 	{
-		key: 'identity',
-		label: '淘宝身份码',
-		url: 'https://pages-fast.m.taobao.com/wow/z/uniapp/1100410/last-mile-fe/m-end-identity-code/home'
+		...STATION_TARGETS.identity,
+		title: '出示身份码',
+		description: '点击卡片，跳转淘宝身份码',
+		icon: '码'
 	},
 	{
-		key: 'home',
-		label: '驿站首页',
-		url: 'https://pages-fast.m.taobao.com/wow/z/uniapp/1100333/last-mile-fe/m-end-school-tab/home'
-	},
-	{
-		key: 'cainiao',
-		label: '菜鸟出库',
-		url: 'https://market.m.taobao.com/app/cn-yz/multi-activity/authCode.html?bizEntry=ALIPAY_GUOGUO'
+		...STATION_TARGETS.home,
+		title: '打开我的驿站',
+		description: '点击卡片，跳转淘宝查看包裹',
+		icon: '站'
 	}
 ];
 
-/**
- * 根据 tab 标识获取对应的驿站页面配置。
- * @param {string} key 驿站页面标识
- * @returns {{ key: string, label: string, url: string }}
- */
-const getPageByKey = (key) => {
-	return stationPages.find(item => item.key === key) || stationPages[0];
-};
+const autoOpenTarget = ref(getStationAutoOpenTarget());
+const openingKey = ref('');
+let openingTimer = null;
+let hasAutoOpened = false;
+let openingExternalApp = false;
 
-/**
- * 读取本地保存的驿站默认页，并兜底到合法值。
- * @returns {string}
- */
-const getStoredDefaultKey = () => {
-	const key = uni.getStorageSync('stationDefaultPage') || DEFAULT_STATION_PAGE_KEY;
-	return stationPages.some(item => item.key === key) ? key : DEFAULT_STATION_PAGE_KEY;
-};
+const contentStyle = computed(() => ({
+	paddingTop: `${statusBarHeight + 22}px`
+}));
 
-const currentKey = ref(getStoredDefaultKey());
-const isLoading = ref(true);
-const showBrightnessTip = ref(false);
-const brightnessTipText = ref('✨ 已自动调亮屏幕');
-const isBrightnessBoosted = ref(false);
-const lastAppliedDefaultKey = ref('');
-const fallbackSrc = ref(getPageByKey(currentKey.value).url);
-
-let brightnessTipTimer = null;
-let identityPreloadTimer = null;
-let noticeDialogVisible = false;
-
-// #ifdef APP-PLUS
-const childWebviews = new Map();
-const pageLoadedSet = new Set();
-const pageCanBackMap = new Map();
-let parentWebview = null;
-// #endif
-
-const currentPage = computed(() => {
-	return getPageByKey(currentKey.value);
+const openingTarget = computed(() => {
+	return stationTargets.find(target => target.key === openingKey.value) || null;
 });
 
-const currentLabel = computed(() => {
-	return currentPage.value.label;
-});
-
-const headerStyle = computed(() => ({
-	height: `${headerTotalHeight}px`,
-	paddingTop: `${statusBarHeight}px`
-}));
-
-const webShellStyle = computed(() => ({
-	top: `${headerTotalHeight}px`
-}));
-
-const fallbackWebviewStyles = computed(() => ({
-	top: `${headerTotalHeight}px`,
-	bottom: '0px',
-	progress: {
-		color: '#3B91A8'
-	}
-}));
-
 /**
- * 将驿站页亮度提升到最高。
- * @returns {Promise<boolean>}
+ * 清除尚未执行的跳转。
  */
-const setBrightnessMax = () => {
-	return boostSceneBrightness(BRIGHTNESS_SCENES.station);
+const clearOpeningTimer = () => {
+	if (!openingTimer) return;
+	clearTimeout(openingTimer);
+	openingTimer = null;
 };
 
 /**
- * 将驿站页亮度恢复到进入前的原始值。
- * @returns {Promise<boolean>}
+ * 打开淘宝中的指定驿站页面。
+ * @param {string} key 驿站目标标识
  */
-const restoreBrightness = () => {
-	return restoreSceneBrightness(BRIGHTNESS_SCENES.station);
-};
+const openTarget = (key) => {
+	const target = STATION_TARGETS[key];
+	if (!target || openingKey.value) return;
 
-/**
- * 展示驿站页亮度提示，App 端优先使用原生 toast。
- * @param {string} message 提示文案
- */
-const showBrightnessNotice = (message) => {
-	// #ifdef APP-PLUS
-	if (typeof plus !== 'undefined' && plus.nativeUI?.toast) {
-		plus.nativeUI.toast(message, {
-			verticalAlign: 'bottom'
+	openingKey.value = key;
+	openingTimer = setTimeout(() => {
+		openingTimer = null;
+		openingKey.value = '';
+		openingExternalApp = true;
+
+		// #ifdef APP-PLUS
+		plus.runtime.openURL(target.url, () => {
+			uni.showToast({ title: '未能打开淘宝，请确认已安装', icon: 'none' });
 		});
-		return;
-	}
-	// #endif
+		// #endif
 
-	brightnessTipText.value = message;
-	showBrightnessTip.value = true;
-	if (brightnessTipTimer) clearTimeout(brightnessTipTimer);
-	brightnessTipTimer = setTimeout(() => {
-		showBrightnessTip.value = false;
-	}, 3000);
+		// #ifdef H5
+		window.location.href = target.url;
+		// #endif
+	}, AUTO_OPEN_DELAY);
 };
 
 /**
- * 同步当前驿站页是否处于高亮状态。
+ * 取消本次尚未执行的跳转。
  */
-const syncBrightnessBoostedState = () => {
-	isBrightnessBoosted.value = isSceneBrightnessBoosted(BRIGHTNESS_SCENES.station);
+const cancelOpening = () => {
+	clearOpeningTimer();
+	openingKey.value = '';
 };
 
 /**
- * 首次手动点亮前给用户一个提醒，避免突然刺眼。
- * @returns {Promise<boolean>}
+ * 切换自动打开目标，两个目标保持互斥。
+ * @param {string} key 驿站目标标识
  */
-const confirmManualBrightnessToggle = () =>
-	new Promise((resolve) => {
-		if (!shouldShowManualBrightnessHint()) {
-			resolve(true);
-			return;
-		}
-
-		uni.showModal({
-			title: '点亮屏幕',
-			content: '点击后会临时拉满屏幕亮度，方便查看取件码。您也可以在设置里开启“驿站页自动点亮”。',
-			confirmText: '继续',
-			success: (res) => {
-				if (res.confirm) {
-					markManualBrightnessHintShown();
-					resolve(true);
-					return;
-				}
-
-				resolve(false);
-			},
-			fail: () => resolve(false)
-		});
-	});
-
-/**
- * 处理驿站页右下角亮度按钮点击。
- */
-const handleBrightnessToggle = async () => {
-	if (!isBrightnessBoosted.value) {
-		const confirmed = await confirmManualBrightnessToggle();
-		if (!confirmed) return;
-	}
-
-	const boosted = await toggleSceneBrightness(BRIGHTNESS_SCENES.station);
-	syncBrightnessBoostedState();
-	showBrightnessNotice(
-		boosted
-			? '✨ 已手动拉满亮度，可在设置中开启驿站页自动点亮'
-			: '已恢复原亮度'
-	);
+const toggleAutoOpen = (key) => {
+	autoOpenTarget.value = autoOpenTarget.value === key ? '' : key;
+	setStationAutoOpenTarget(autoOpenTarget.value);
 };
 
 /**
- * 清理驿站页亮度提示和对应计时器。
+ * 请求系统将身份码固定到桌面。
  */
-const clearBrightnessNotice = () => {
-	if (brightnessTipTimer) {
-		clearTimeout(brightnessTipTimer);
-		brightnessTipTimer = null;
-	}
-	showBrightnessTip.value = false;
-};
+const addIdentityShortcut = () => {
+	const result = requestIdentityShortcut();
+	if (result.success) return;
 
-/**
- * 清理身份码后台预加载计时器，避免重复排队。
- */
-const clearIdentityPreloadTimer = () => {
-	if (!identityPreloadTimer) return;
-	clearTimeout(identityPreloadTimer);
-	identityPreloadTimer = null;
-};
-
-// #ifdef APP-PLUS
-/**
- * 获取当前 uni 页面对应的原生宿主 WebView。
- * @returns {PlusWebviewWebviewObject | null}
- */
-const getCurrentAppWebview = () => {
-	const pages = getCurrentPages();
-	const currentUniPage = pages[pages.length - 1];
-	return currentUniPage && typeof currentUniPage.$getAppWebview === 'function'
-		? currentUniPage.$getAppWebview()
-		: null;
-};
-
-/**
- * 生成驿站子 WebView 的固定 id，便于复用和排查。
- * @param {string} key 驿站页面标识
- * @returns {string}
- */
-const getChildWebviewId = (key) => {
-	return `station-child-${key}`;
-};
-
-/**
- * 计算驿站子 WebView 的原生布局，给顶部工具栏和底部控件留出空间。
- * @returns {Record<string, unknown>}
- */
-const getChildWebviewStyle = () => {
-	return {
-		top: `${headerTotalHeight}px`,
-		bottom: `${NOTICE_BAR_HEIGHT + BRIGHTNESS_CONTROL_HEIGHT}px`,
-		left: '0px',
-		right: '0px',
-		progress: {
-			color: '#3B91A8'
-		},
-		plusrequire: 'none',
-		'uni-app': 'none',
-		bounce: 'none'
+	const messages = {
+		notApp: '仅支持在 Android 应用内添加',
+		version: '系统版本不支持添加快捷方式',
+		launcher: '当前桌面不支持添加快捷方式',
+		failed: '创建快捷方式失败，请查看运行日志'
 	};
-};
-
-/**
- * 给整个驿站页挂上资源秒回拦截，尽量压掉无意义埋点请求和刷屏报错。
- * @param {PlusWebviewWebviewObject} webview 子 WebView
- */
-const applyStationResourceRedirects = (webview) => {
-	if (!webview || typeof webview.overrideResourceRequest !== 'function') {
-		return;
-	}
-
-	webview.overrideResourceRequest(STATION_RESOURCE_REDIRECTS);
-};
-
-/**
- * 在同一个驿站宿主里后台预加载身份码页，避免首次点开时从零加载。
- * 只预热身份码，不改当前 tab，也不影响当前页面的加载状态。
- */
-const queueIdentityPreload = () => {
-	clearIdentityPreloadTimer();
-	if (!parentWebview || currentKey.value === 'identity' || childWebviews.has('identity')) {
-		return;
-	}
-
-	identityPreloadTimer = setTimeout(() => {
-		identityPreloadTimer = null;
-		if (!parentWebview || currentKey.value === 'identity' || childWebviews.has('identity')) {
-			return;
-		}
-
-		ensureChildWebview('identity');
-		syncChildVisibility();
-		console.log(STATION_LOG_PREFIX, '已在驿站页后台预加载身份码');
-	}, 120);
-};
-
-/**
- * 给子 WebView 注入驿站专用脚本。
- * 先按需清理首页旧壳缓存，再补同页跳转桥接。
- * @param {PlusWebviewWebviewObject | null | undefined} webview 子 WebView
- */
-const bindSameTabWindowOpenBridge = (webview) => {
-	if (!webview) return;
-
-	if (typeof webview.appendJsFile === 'function') {
-		webview.appendJsFile(SAME_TAB_WINDOW_OPEN_BRIDGE_PATH);
-	}
-
-	if (typeof webview.evalJS === 'function') {
-		webview.evalJS(STATION_CACHE_GUARD_EVAL);
-		webview.evalJS(SAME_TAB_WINDOW_OPEN_BRIDGE_EVAL);
-	}
-};
-
-/**
- * 页面恢复显示后，给所有存活中的子 WebView 重新补注入脚本。
- */
-const rebindAllSameTabWindowOpenBridges = () => {
-	childWebviews.forEach((child) => {
-		bindSameTabWindowOpenBridge(child);
-	});
-};
-
-/**
- * 公告详情弹层显示时先隐藏当前原生子 WebView，关闭后再恢复。
- * 这样仍可复用现有 Vue 公告样式，不需要改成原生弹窗。
- * @param {boolean} visible 公告详情弹层是否可见
- */
-const handleNoticeDialogChange = (visible) => {
-	noticeDialogVisible = visible;
-	if (!childWebviews.size) return;
-
-	if (visible) {
-		childWebviews.forEach((child) => {
-			child.hide('none');
-		});
-		return;
-	}
-
-	syncChildVisibility();
-};
-
-/**
- * 仅在当前 tab 上同步加载态，避免隐藏页事件误改头部状态。
- * @param {string} key 驿站页面标识
- */
-const setCurrentLoadingByKey = (key) => {
-	if (currentKey.value !== key) return;
-	isLoading.value = !pageLoadedSet.has(key);
-};
-
-/**
- * 刷新当前 tab 的返回能力缓存，保证系统返回键行为正确。
- * @param {string} key 驿站页面标识
- */
-const refreshCanBackState = (key) => {
-	const child = childWebviews.get(key);
-	if (!child || typeof child.canBack !== 'function') {
-		pageCanBackMap.set(key, false);
-		return;
-	}
-
-	child.canBack((event) => {
-		pageCanBackMap.set(key, !!event.canBack);
-	});
-};
-
-/**
- * 绑定子 WebView 的加载事件。
- * 这里顺手补脚本注入和 Cookie 落盘，尽量让前后台状态更稳定。
- * @param {string} key 驿站页面标识
- * @param {PlusWebviewWebviewObject} webview 子 WebView
- */
-const bindChildWebviewEvents = (key, webview) => {
-	webview.addEventListener('loading', () => {
-		if (currentKey.value === key) {
-			isLoading.value = true;
-		}
-	});
-
-	webview.addEventListener('loaded', () => {
-		pageLoadedSet.add(key);
-		bindSameTabWindowOpenBridge(webview);
-		setCurrentLoadingByKey(key);
-		refreshCanBackState(key);
-		flushWebviewCookies();
-		uni.stopPullDownRefresh();
-	});
-
-	webview.addEventListener('error', () => {
-		pageLoadedSet.delete(key);
-		pageCanBackMap.set(key, false);
-		setCurrentLoadingByKey(key);
-		uni.stopPullDownRefresh();
-		uni.showToast({
-			title: '页面加载失败，点击刷新重试',
-			icon: 'none'
-		});
-	});
-};
-
-/**
- * 创建指定 tab 的原生子 WebView。
- * @param {string} key 驿站页面标识
- * @returns {PlusWebviewWebviewObject | null}
- */
-const createChildWebview = (key) => {
-	if (childWebviews.has(key)) return childWebviews.get(key);
-	if (!parentWebview || typeof plus === 'undefined') return null;
-
-	const page = getPageByKey(key);
-	const webviewId = getChildWebviewId(key);
-	const existing = plus.webview.getWebviewById(webviewId);
-	if (existing) {
-		try {
-			existing.close('none');
-		} catch (error) {
-			console.warn(STATION_LOG_PREFIX, '关闭旧驿站子窗口失败:', error);
-		}
-	}
-
-	const child = plus.webview.create('', webviewId, getChildWebviewStyle());
-	childWebviews.set(key, child);
-	pageCanBackMap.set(key, false);
-	applyStationResourceRedirects(child);
-	bindSameTabWindowOpenBridge(child);
-	bindChildWebviewEvents(key, child);
-	parentWebview.append(child);
-	if (key !== currentKey.value) {
-		child.hide('none');
-	}
-	child.loadURL(page.url);
-	return child;
-};
-
-/**
- * 确保目标 tab 的子 WebView 已存在。
- * @param {string} key 驿站页面标识
- * @returns {PlusWebviewWebviewObject | null}
- */
-const ensureChildWebview = (key) => {
-	return childWebviews.get(key) || createChildWebview(key);
-};
-
-/**
- * 切换三个驿站子页面的显隐，只保留当前 tab 可见。
- */
-const syncChildVisibility = () => {
-	if (noticeDialogVisible) {
-		childWebviews.forEach((child) => {
-			child.hide('none');
-		});
-		return;
-	}
-
-	childWebviews.forEach((child, key) => {
-		if (key === currentKey.value) {
-			child.show('none');
-			refreshCanBackState(key);
-		} else {
-			child.hide('none');
-		}
-	});
-};
-
-/**
- * 首次进入驿站页时初始化当前 tab 对应的原生子 WebView。
- */
-const initAppWebviews = () => {
-	parentWebview = getCurrentAppWebview();
-	if (!parentWebview) return;
-
-	ensureChildWebview(currentKey.value);
-	syncChildVisibility();
-	setCurrentLoadingByKey(currentKey.value);
-	queueIdentityPreload();
-};
-
-/**
- * 刷新当前原生子 WebView。
- * @returns {boolean}
- */
-const reloadNativeWebview = () => {
-	const active = childWebviews.get(currentKey.value);
-	if (!active) return false;
-	pageLoadedSet.delete(currentKey.value);
-	pageCanBackMap.set(currentKey.value, false);
-	isLoading.value = true;
-	active.reload(true);
-	return true;
-};
-
-/**
- * 关闭并释放所有驿站子 WebView。
- */
-const closeAllChildren = () => {
-	childWebviews.forEach((child) => {
-		try {
-			child.close('none');
-		} catch (error) {
-			console.warn(STATION_LOG_PREFIX, '关闭驿站子窗口失败:', error);
-		}
-	});
-	childWebviews.clear();
-	pageLoadedSet.clear();
-	pageCanBackMap.clear();
-	parentWebview = null;
-};
-// #endif
-
-/**
- * 切换当前驿站 tab。
- * @param {string} key 驿站页面标识
- */
-const switchPage = (key) => {
-	if (currentKey.value === key) return;
-	currentKey.value = key;
-
-	// #ifdef APP-PLUS
-	ensureChildWebview(key);
-	syncChildVisibility();
-	setCurrentLoadingByKey(key);
-	return;
-	// #endif
-
-	// #ifndef APP-PLUS
-	fallbackSrc.value = getPageByKey(key).url;
-	isLoading.value = true;
-	// #endif
-};
-
-/**
- * 刷新当前驿站页内容。
- * App 端优先刷新原生子 WebView，H5 端回退到重设 src。
- */
-const reloadWebview = () => {
-	flushWebviewCookies();
-
-	// #ifdef APP-PLUS
-	if (reloadNativeWebview()) return;
-	// #endif
-
-	isLoading.value = true;
-	const url = fallbackSrc.value;
-	fallbackSrc.value = '';
-	setTimeout(() => {
-		fallbackSrc.value = url;
-	}, 0);
-};
-
-/**
- * H5 端 WebView 加载完成后的收尾处理。
- */
-const handleFallbackLoad = () => {
-	isLoading.value = false;
-	flushWebviewCookies();
-	uni.stopPullDownRefresh();
-};
-
-/**
- * H5 端 WebView 加载失败时给出统一提示。
- */
-const handleFallbackError = () => {
-	isLoading.value = false;
-	uni.stopPullDownRefresh();
-	uni.showToast({
-		title: '页面加载失败，点击刷新重试',
-		icon: 'none'
-	});
+	uni.showToast({ title: messages[result.reason] || messages.failed, icon: 'none' });
 };
 
 onLoad(() => {
-	lastAppliedDefaultKey.value = currentKey.value;
-});
-
-onReady(() => {
-	// #ifdef APP-PLUS
-	initAppWebviews();
-	// #endif
+	hasAutoOpened = false;
 });
 
 onShow(() => {
-	const defaultKey = getStoredDefaultKey();
-	if (defaultKey !== lastAppliedDefaultKey.value) {
-		currentKey.value = defaultKey;
-		lastAppliedDefaultKey.value = defaultKey;
-
-		// #ifdef APP-PLUS
-		ensureChildWebview(defaultKey);
-		syncChildVisibility();
-		setCurrentLoadingByKey(defaultKey);
-		// #endif
-
-		// #ifndef APP-PLUS
-		fallbackSrc.value = getPageByKey(defaultKey).url;
-		isLoading.value = true;
-		// #endif
+	autoOpenTarget.value = getStationAutoOpenTarget();
+	if (openingExternalApp) {
+		openingExternalApp = false;
+		return;
 	}
+	if (hasAutoOpened || !autoOpenTarget.value) return;
 
-	// #ifdef APP-PLUS
-	rebindAllSameTabWindowOpenBridges();
-	queueIdentityPreload();
-	// #endif
-
-	// 驿站页重新显示时，根据设置决定是否自动点亮。
-	syncBrightnessBoostedState();
-	if (isSceneAutoBrightnessEnabled(BRIGHTNESS_SCENES.station)) {
-		setBrightnessMax().then(() => {
-			syncBrightnessBoostedState();
-			showBrightnessNotice('✨ 已自动调亮屏幕');
-		});
-	}
+	hasAutoOpened = true;
+	openTarget(autoOpenTarget.value);
 });
 
 onHide(() => {
-	flushWebviewCookies();
-	clearBrightnessNotice();
-	clearIdentityPreloadTimer();
-	noticeDialogVisible = false;
-
-	// 切离驿站页后恢复进入前的原始亮度。
-	restoreBrightness().finally(() => {
-		syncBrightnessBoostedState();
-	});
+	cancelOpening();
+	if (!openingExternalApp) {
+		hasAutoOpened = false;
+	}
 });
 
 onUnload(() => {
-	clearBrightnessNotice();
-	clearIdentityPreloadTimer();
-	noticeDialogVisible = false;
-	restoreBrightness();
-
-	// #ifdef APP-PLUS
-	closeAllChildren();
-	// #endif
-});
-
-onBackPress((options) => {
-	// #ifdef APP-PLUS
-	if (options?.from !== 'backbutton' && options?.from !== 'navigateBack') {
-		return false;
-	}
-
-	const active = childWebviews.get(currentKey.value);
-	if (!active) return false;
-
-	if (!pageCanBackMap.get(currentKey.value)) {
-		return false;
-	}
-
-	active.back();
-	setTimeout(() => {
-		refreshCanBackState(currentKey.value);
-	}, 150);
-	return true;
-	// #endif
-
-	return false;
+	clearOpeningTimer();
 });
 </script>
 
 <style scoped>
 .station-page {
 	min-height: 100vh;
-	background: #F3F7FA;
+	background-color: #F3F7FA;
+	background-image: url('/static/settings-background.webp');
+	background-position: center;
+	background-size: auto 100vh;
+	background-repeat: no-repeat;
+	background-attachment: fixed;
 }
 
-.station-header {
-	position: fixed;
-	top: 0;
-	left: 0;
-	right: 0;
-	z-index: 20;
-	box-sizing: border-box;
-	background: rgba(255, 255, 255, 0.96);
-	border-bottom: 1px solid #D9E5EB;
+.station-content {
+	padding: 0 14px 84px;
 }
 
-.toolbar {
+.page-heading {
+	margin: 8px 2px 20px;
+}
+
+.page-title {
+	display: block;
+	font-size: 26px;
+	line-height: 1.2;
+	font-weight: 700;
+	color: #243447;
+}
+
+.station-action {
 	display: flex;
 	align-items: center;
-	height: 44px;
-	padding: 6px 8px;
-	box-sizing: border-box;
-	gap: 6px;
+	gap: 12px;
+	padding: 16px 14px;
+	margin-bottom: 12px;
+	background: rgba(255, 255, 255, 0.82);
+	border: 1px solid rgba(59, 145, 168, 0.16);
+	border-radius: 16px;
+	box-shadow: 0 3px 10px rgba(36, 52, 71, 0.06);
 }
 
-.segment {
-	flex: 1;
-	min-width: 0;
-	display: flex;
-	align-items: center;
-	gap: 6px;
+.station-action:active,
+.shortcut-card:active,
+.cancel-button:active {
+	opacity: 0.8;
 }
 
-.segment-item {
-	flex: 1;
-	height: 32px;
+.station-action-icon {
+	width: 42px;
+	height: 42px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	border-radius: 14px;
-	background: transparent;
+	font-size: 18px;
+	font-weight: 700;
+	color: #ffffff;
+	flex-shrink: 0;
+}
+
+.station-action-icon-identity {
+	background: linear-gradient(135deg, #3B91A8 0%, #76C6D2 100%);
+}
+
+.station-action-icon-home {
+	background: linear-gradient(135deg, #5E8D79 0%, #8DC7AD 100%);
+}
+
+.station-action-copy,
+.shortcut-copy {
+	flex: 1;
+	min-width: 0;
+}
+
+.station-action-title,
+.shortcut-title {
+	display: block;
+	font-size: 16px;
+	font-weight: 600;
+	color: #243447;
+}
+
+.station-action-desc,
+.shortcut-desc {
+	display: block;
+	margin-top: 5px;
+	font-size: 12px;
+	line-height: 1.4;
 	color: #68798A;
 }
 
-.segment-item.active {
-	background: #3B91A8;
-	color: #fff;
+.auto-open-control {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 5px;
+	flex-shrink: 0;
 }
 
-.segment-item.loading {
-	opacity: 0.82;
-}
-
-.segment-text {
-	font-size: 13px;
-	font-weight: 600;
+.auto-open-label {
+	font-size: 10px;
 	line-height: 1;
+	color: #68798A;
 }
 
-.refresh-button {
-	width: 46px;
-	height: 32px;
-	padding: 0;
-	margin: 0;
-	border-radius: 14px;
-	border: 1px solid rgba(59, 145, 168, 0.32);
-	background: rgba(118, 198, 210, 0.16);
-	color: #3B91A8;
-	font-size: 12px;
-	line-height: 32px;
+.auto-open-switch {
+	width: 44px;
+	height: 26px;
+	padding: 3px;
+	box-sizing: border-box;
+	border-radius: 999px;
+	background: #C8D6DE;
+	transition: background 0.18s ease;
 }
 
-.refresh-button::after {
-	border: none;
+.auto-open-switch.active {
+	background: #3B91A8;
 }
 
-.loading-line {
-	height: 18px;
+.auto-open-knob {
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	background: #ffffff;
+	box-shadow: 0 1px 3px rgba(36, 52, 71, 0.2);
+	transition: transform 0.18s ease;
+}
+
+.auto-open-switch.active .auto-open-knob {
+	transform: translateX(18px);
+}
+
+.shortcut-card {
+	position: fixed;
+	left: 14px;
+	right: 14px;
+	bottom: 64px;
+	z-index: 5;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 14px;
+	background: rgba(255, 255, 255, 0.76);
+	border: 1px solid rgba(59, 145, 168, 0.24);
+	border-radius: 16px;
+	box-shadow: 0 3px 10px rgba(36, 52, 71, 0.05);
+}
+
+.shortcut-button {
+	padding: 7px 13px;
+	border-radius: 999px;
+	background: linear-gradient(135deg, #3B91A8 0%, #76C6D2 100%);
+	color: #ffffff;
+	font-size: 13px;
+	font-weight: 500;
+}
+
+.opening-mask {
+	position: fixed;
+	inset: 0;
+	z-index: 20;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	gap: 6px;
-	margin-top: -3px;
-	color: #3B91A8;
+	padding: 24px;
+	background: rgba(36, 52, 71, 0.18);
 }
 
-.loading-dot {
-	width: 6px;
-	height: 6px;
+.opening-dialog {
+	width: 100%;
+	max-width: 270px;
+	padding: 24px 20px 18px;
+	box-sizing: border-box;
+	text-align: center;
+	background: rgba(255, 255, 255, 0.96);
+	border-radius: 18px;
+	box-shadow: 0 10px 30px rgba(36, 52, 71, 0.18);
+}
+
+.opening-dot {
+	width: 10px;
+	height: 10px;
+	margin: 0 auto 12px;
 	border-radius: 50%;
 	background: #3B91A8;
 	animation: pulse 0.8s ease-in-out infinite;
 }
 
-.loading-text {
-	font-size: 11px;
-	line-height: 1;
+.opening-title {
+	display: block;
+	font-size: 16px;
+	font-weight: 600;
+	color: #243447;
+}
+
+.opening-desc {
+	display: block;
+	margin-top: 7px;
+	font-size: 12px;
+	color: #68798A;
+}
+
+.cancel-button {
+	margin-top: 18px;
+	padding: 9px;
+	border-radius: 12px;
+	background: #E8F2F5;
+	font-size: 13px;
+	color: #3B91A8;
 }
 
 @keyframes pulse {
-	0% {
-		opacity: 0.35;
-		transform: scale(0.8);
-	}
-
-	50% {
-		opacity: 1;
-		transform: scale(1);
-	}
-
-	100% {
-		opacity: 0.35;
-		transform: scale(0.8);
-	}
-}
-
-.web-shell,
-.native-webview-shell {
-	position: fixed;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	background: #fff;
-}
-
-.station-webview {
-	width: 100%;
-	height: 100%;
-}
-
-.brightness-toggle {
-	position: fixed;
-	right: 12px;
-	bottom: 38px;
-	z-index: 36;
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	padding: 9px 12px;
-	border-radius: 999px;
-	background: rgba(15, 23, 42, 0.72);
-	border: 1px solid rgba(255, 255, 255, 0.14);
-	backdrop-filter: blur(10px);
-}
-
-.brightness-toggle.active {
-	background: rgba(59, 145, 168, 0.92);
-}
-
-.brightness-toggle-icon {
-	font-size: 14px;
-	line-height: 1;
-	color: #fff;
-}
-
-.brightness-toggle-text {
-	font-size: 12px;
-	line-height: 1;
-	color: #fff;
-}
-
-.brightness-tip {
-	position: absolute;
-	bottom: 56px;
-	left: 50%;
-	z-index: 30;
-	transform: translateX(-50%);
-	background: rgba(59, 145, 168, 0.9);
-	padding: 8px 18px;
-	border-radius: 20px;
-	animation: fadeInOut 3s ease-in-out;
-}
-
-.tip-text {
-	font-size: 13px;
-	color: #fff;
-}
-
-@keyframes fadeInOut {
-	0% {
-		opacity: 0;
-		transform: translateX(-50%) translateY(10px);
-	}
-
-	15% {
-		opacity: 1;
-		transform: translateX(-50%) translateY(0);
-	}
-
-	85% {
-		opacity: 1;
-		transform: translateX(-50%) translateY(0);
-	}
-
-	100% {
-		opacity: 0;
-		transform: translateX(-50%) translateY(10px);
-	}
+	0%, 100% { opacity: 0.35; transform: scale(0.8); }
+	50% { opacity: 1; transform: scale(1); }
 }
 </style>

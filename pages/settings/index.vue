@@ -40,13 +40,6 @@
 					</view>
 				</view>
 
-				<view class="setting-row setting-row-child" @click="chooseStationDefaultPage">
-					<text class="setting-row-title">驿站页默认展示</text>
-					<view class="setting-row-value">
-						<text class="setting-row-text">{{ currentStationDefaultLabel }}</text>
-						<text class="setting-row-arrow">></text>
-					</view>
-				</view>
 			</view>
 
 			<view class="feature-section compact-section">
@@ -61,11 +54,25 @@
 					<switch :checked="viewerAutoBrightnessEnabled" color="#3B91A8" @change="handleViewerAutoBrightnessChange" />
 				</view>
 
+			</view>
+
+			<view class="feature-section compact-section">
+				<view class="section-heading section-heading-inline">
+					<text class="section-title">驿站</text>
+				</view>
+
 				<view class="toggle-row">
 					<view class="toggle-copy">
-						<text class="toggle-title">驿站页自动点亮</text>
+						<text class="toggle-title">自动跳转身份码</text>
 					</view>
-					<switch :checked="stationAutoBrightnessEnabled" color="#3B91A8" @change="handleStationAutoBrightnessChange" />
+					<switch :checked="stationAutoOpenTarget === 'identity'" color="#3B91A8" @change="handleStationAutoOpenChange('identity', $event)" />
+				</view>
+
+				<view class="toggle-row">
+					<view class="toggle-copy">
+						<text class="toggle-title">自动跳转我的驿站</text>
+					</view>
+					<switch :checked="stationAutoOpenTarget === 'home'" color="#3B91A8" @change="handleStationAutoOpenChange('home', $event)" />
 				</view>
 			</view>
 
@@ -90,13 +97,6 @@
 					</view>
 				</view>
 
-				<view class="setting-row" @click="handleClearStationCache">
-					<text class="setting-row-title">清理驿站缓存</text>
-					<view class="setting-row-value">
-						<text class="setting-row-text subtle">{{ stationCacheSummary }}</text>
-					</view>
-				</view>
-
 				<view class="setting-row" @click="handleCheckUpdate">
 					<text class="setting-row-title">检查更新</text>
 					<view class="setting-row-value">
@@ -114,7 +114,7 @@
 				<view class="other-content" v-if="otherExpanded">
 					<view class="info-section">
 						<text class="info-text">1. 传截图：把饮水机/吹风机条码存进来，主页左右滑</text>
-						<text class="info-text">2. 取快递：登录一次淘宝，以后点开直接出取件码。</text>
+						<text class="info-text">2. 取快递：点开驿站，直接跳转淘宝身份码。</text>
 						<text class="info-text">3. 设默认：常用哪个，就把它设为“启动首选”。</text>
 						<text class="info-text">4. 点亮屏：可在设置里开自动点亮，也可在页面右下角手动切换。</text>
 					</view>
@@ -200,15 +200,12 @@ import GlobalNoticeBar from '@/components/GlobalNoticeBar.vue';
 import { APP_VERSION_NAME } from '@/utils/appVersion.js';
 import { checkForUpdate } from '@/utils/updateChecker.js';
 import { BRIGHTNESS_SCENES, getBrightnessPreferences, setSceneAutoBrightnessEnabled } from '@/utils/brightness.js';
-import { clearWebviewSiteData } from '@/utils/webviewCookies.js';
+import { getStationAutoOpenTarget, setStationAutoOpenTarget } from '@/utils/station.js';
 
 const DEFAULT_STARTUP_TAB = 'barcode';
-const DEFAULT_STATION_PAGE = 'home';
-const stationCacheSummary = '驿站页异常时，可点击并重启';
 const startupTab = ref(DEFAULT_STARTUP_TAB);
-const stationDefaultPage = ref(DEFAULT_STATION_PAGE);
 const viewerAutoBrightnessEnabled = ref(false);
-const stationAutoBrightnessEnabled = ref(false);
+const stationAutoOpenTarget = ref('');
 const otherExpanded = ref(false);
 const downloadCount = ref(null);
 const barcodes = ref([]);
@@ -222,21 +219,6 @@ const startupOptions = [
 	{
 		value: 'station',
 		label: '快递驿站'
-	}
-];
-
-const stationDefaultOptions = [
-	{
-		value: 'identity',
-		label: '淘宝身份码'
-	},
-	{
-		value: 'home',
-		label: '驿站首页'
-	},
-	{
-		value: 'cainiao',
-		label: '菜鸟出库码'
 	}
 ];
 
@@ -305,13 +287,6 @@ const currentStartupLabel = computed(() => {
 });
 
 /**
- * 当前驿站默认展示页对应的展示文字。
- */
-const currentStationDefaultLabel = computed(() => {
-	return stationDefaultOptions.find(item => item.value === stationDefaultPage.value)?.label || '驿站首页';
-});
-
-/**
  * 当前默认条码对应的展示文字。
  */
 const currentDefaultBarcodeLabel = computed(() => {
@@ -324,11 +299,10 @@ const currentDefaultBarcodeLabel = computed(() => {
 });
 
 /**
- * 读取启动项、驿站默认页和亮度偏好设置。
+ * 读取启动项、自动打开和亮度偏好设置。
  */
 const loadPreferences = () => {
 	startupTab.value = uni.getStorageSync('startupTab') || DEFAULT_STARTUP_TAB;
-	stationDefaultPage.value = uni.getStorageSync('stationDefaultPage') || DEFAULT_STATION_PAGE;
 	barcodes.value = uni.getStorageSync('barcodes') || [];
 	defaultBarcodeId.value = uni.getStorageSync('defaultBarcodeId') || '';
 
@@ -337,9 +311,8 @@ const loadPreferences = () => {
 		uni.setStorageSync('defaultBarcodeId', defaultBarcodeId.value);
 	}
 
-	const brightnessPreferences = getBrightnessPreferences();
-	viewerAutoBrightnessEnabled.value = brightnessPreferences.viewerAuto;
-	stationAutoBrightnessEnabled.value = brightnessPreferences.stationAuto;
+	viewerAutoBrightnessEnabled.value = getBrightnessPreferences().viewerAuto;
+	stationAutoOpenTarget.value = getStationAutoOpenTarget();
 };
 
 /**
@@ -386,20 +359,6 @@ const chooseStartupTab = () => {
 };
 
 /**
- * 设置进入驿站后默认展示的子页面。
- * @param {string} value 驿站页面标识
- */
-const setStationDefaultPage = (value) => {
-	stationDefaultPage.value = value;
-	uni.setStorageSync('stationDefaultPage', value);
-	uni.showToast({
-		title: '驿站默认项已更新',
-		icon: 'success',
-		duration: 1200
-	});
-};
-
-/**
  * 将启动项和默认展示项恢复为推荐初始值。
  */
 const resetDefaultPreferences = () => {
@@ -410,30 +369,13 @@ const resetDefaultPreferences = () => {
 			if (!res.confirm) return;
 
 			startupTab.value = DEFAULT_STARTUP_TAB;
-			stationDefaultPage.value = DEFAULT_STATION_PAGE;
 			uni.setStorageSync('startupTab', DEFAULT_STARTUP_TAB);
-			uni.setStorageSync('stationDefaultPage', DEFAULT_STATION_PAGE);
 			resetDefaultBarcodePreference();
 			uni.showToast({
 				title: '已恢复默认设置',
 				icon: 'success',
 				duration: 1500
 			});
-		}
-	});
-};
-
-/**
- * 使用底部动作面板选择驿站默认展示页。
- */
-const chooseStationDefaultPage = () => {
-	uni.showActionSheet({
-		itemList: stationDefaultOptions.map(item => item.label),
-		success: (res) => {
-			const target = stationDefaultOptions[res.tapIndex];
-			if (target) {
-				setStationDefaultPage(target.value);
-			}
 		}
 	});
 };
@@ -545,17 +487,13 @@ const handleViewerAutoBrightnessChange = (event) => {
 };
 
 /**
- * 处理驿站页自动点亮开关切换。
+ * 更新驿站自动打开开关，两个目标保持互斥。
+ * @param {string} target 驿站目标标识
  * @param {{ detail: { value: boolean } }} event 开关事件
  */
-const handleStationAutoBrightnessChange = (event) => {
-	const enabled = !!event.detail.value;
-	stationAutoBrightnessEnabled.value = enabled;
-	updateAutoBrightnessPreference(
-		BRIGHTNESS_SCENES.station,
-		enabled,
-		enabled ? '已开启驿站页自动点亮' : '已关闭驿站页自动点亮'
-	);
+const handleStationAutoOpenChange = (target, event) => {
+	stationAutoOpenTarget.value = event.detail.value ? target : '';
+	setStationAutoOpenTarget(stationAutoOpenTarget.value);
 };
 
 /**
@@ -565,48 +503,6 @@ const handleCheckUpdate = () => {
 	checkForUpdate({
 		silent: false,
 		force: true
-	});
-};
-
-/**
- * 清理驿站缓存后优先自动重启；如果当前环境不支持，则自动退出应用。
- */
-const restartAppAfterCacheClear = () => {
-	// #ifdef APP-PLUS
-	if (typeof plus !== 'undefined' && plus.runtime) {
-		if (typeof plus.runtime.restart === 'function') {
-			plus.runtime.restart();
-			return;
-		}
-
-		if (typeof plus.runtime.quit === 'function') {
-			plus.runtime.quit();
-			return;
-		}
-	}
-	// #endif
-};
-
-/**
- * 清理驿站页相关 WebView 缓存和登录态。
- */
-const handleClearStationCache = () => {
-	uni.showModal({
-		title: '清理驿站缓存',
-		content: '这会退出淘宝登录状态，不会删除条码图片和当前设置。清理完成后将自动重启应用。是否继续？',
-		success: (res) => {
-			if (!res.confirm) return;
-
-			clearWebviewSiteData();
-			uni.showToast({
-				title: '已清理，正在重启…',
-				icon: 'none',
-				duration: 1200
-			});
-			setTimeout(() => {
-				restartAppAfterCacheClear();
-			}, 300);
-		}
 	});
 };
 
@@ -679,8 +575,9 @@ onMounted(() => {
 .header {
 	padding: 10px 14px 4px;
 	display: flex;
-	justify-content: space-between;
 	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
 }
 
 .header-right {

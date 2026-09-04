@@ -1,17 +1,14 @@
 const STORAGE_KEYS = {
 	viewerAuto: 'viewerAutoBrightnessEnabled',
-	stationAuto: 'stationAutoBrightnessEnabled',
 	manualHintShown: 'brightnessManualHintShown'
 };
 
 export const BRIGHTNESS_SCENES = {
-	viewer: 'viewer',
-	station: 'station'
+	viewer: 'viewer'
 };
 
 const sceneStorageKeyMap = {
-	[BRIGHTNESS_SCENES.viewer]: STORAGE_KEYS.viewerAuto,
-	[BRIGHTNESS_SCENES.station]: STORAGE_KEYS.stationAuto
+	[BRIGHTNESS_SCENES.viewer]: STORAGE_KEYS.viewerAuto
 };
 
 const sceneStateMap = new Map();
@@ -111,11 +108,10 @@ export const setSceneAutoBrightnessEnabled = (scene, enabled) => {
 
 /**
  * 读取所有亮度偏好设置，供设置页统一展示。
- * @returns {{viewerAuto: boolean, stationAuto: boolean}}
+ * @returns {{viewerAuto: boolean}}
  */
 export const getBrightnessPreferences = () => ({
-	viewerAuto: isSceneAutoBrightnessEnabled(BRIGHTNESS_SCENES.viewer),
-	stationAuto: isSceneAutoBrightnessEnabled(BRIGHTNESS_SCENES.station)
+	viewerAuto: isSceneAutoBrightnessEnabled(BRIGHTNESS_SCENES.viewer)
 });
 
 /**
