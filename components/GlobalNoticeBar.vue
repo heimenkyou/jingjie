@@ -41,7 +41,7 @@
 					:autoplay="false"
 					:duration="250"
 					indicator-color="rgba(15,23,42,0.16)"
-					indicator-active-color="#10b981"
+					indicator-active-color="#3B91A8"
 					@change="handleDialogSwiperChange"
 				>
 					<swiper-item v-for="item in notices" :key="item.id">
@@ -242,10 +242,10 @@ onHide(() => {
 	align-items: center;
 	gap: 8px;
 	padding: 0 10px;
-	border-radius: 10px 10px 0 0;
+	border-radius: 14px 14px 0 0;
 	background: rgba(255, 255, 255, 0.98);
-	box-shadow: 0 -6px 20px rgba(15, 23, 42, 0.12);
-	border: 1px solid rgba(15, 23, 42, 0.06);
+	box-shadow: 0 -4px 14px rgba(36, 52, 71, 0.08);
+	border: 1px solid #D9E5EB;
 	border-bottom: none;
 }
 
@@ -276,7 +276,7 @@ onHide(() => {
 
 .notice-tag-info,
 .notice-slide-tag-info {
-	background: #10b981;
+	background: #3B91A8;
 }
 
 .notice-tag-warn,
@@ -293,7 +293,7 @@ onHide(() => {
 	flex: 1;
 	min-width: 0;
 	font-size: 13px;
-	color: #0f172a;
+	color: #243447;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -302,7 +302,7 @@ onHide(() => {
 .notice-hint {
 	flex-shrink: 0;
 	font-size: 11px;
-	color: #64748b;
+	color: #68798A;
 }
 
 .notice-close {
@@ -312,8 +312,8 @@ onHide(() => {
 	line-height: 20px;
 	text-align: center;
 	border-radius: 50%;
-	background: rgba(15, 23, 42, 0.06);
-	color: #64748b;
+	background: #E8F2F5;
+	color: #68798A;
 	font-size: 14px;
 }
 
@@ -334,7 +334,7 @@ onHide(() => {
 .notice-dialog {
 	width: 100%;
 	max-width: 520px;
-	border-radius: 16px;
+	border-radius: 14px;
 	background: #fff;
 	padding: 14px 14px 16px;
 	box-sizing: border-box;
@@ -350,7 +350,7 @@ onHide(() => {
 .notice-dialog-title {
 	font-size: 16px;
 	font-weight: 700;
-	color: #0f172a;
+	color: #243447;
 }
 
 .notice-dialog-close {
@@ -359,8 +359,8 @@ onHide(() => {
 	line-height: 28px;
 	text-align: center;
 	border-radius: 50%;
-	background: rgba(15, 23, 42, 0.06);
-	color: #64748b;
+	background: #E8F2F5;
+	color: #68798A;
 	font-size: 16px;
 }
 
@@ -385,14 +385,14 @@ onHide(() => {
 
 .notice-slide-count {
 	font-size: 12px;
-	color: #94a3b8;
+	color: #68798A;
 }
 
 .notice-slide-content {
 	flex: 1;
 	font-size: 14px;
 	line-height: 1.7;
-	color: #0f172a;
+	color: #243447;
 }
 
 .notice-slide-actions {
@@ -405,7 +405,7 @@ onHide(() => {
 	flex: 1;
 	height: 38px;
 	line-height: 38px;
-	border-radius: 10px;
+	border-radius: 14px;
 	font-size: 13px;
 	padding: 0;
 }
@@ -415,12 +415,12 @@ onHide(() => {
 }
 
 .notice-action-primary {
-	background: #10b981;
+	background: #3B91A8;
 	color: #fff;
 }
 
 .notice-action-secondary {
-	background: rgba(15, 23, 42, 0.06);
-	color: #475569;
+	background: #E8F2F5;
+	color: #243447;
 }
 </style>

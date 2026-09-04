@@ -21,7 +21,7 @@
 			:autoplay="false"
 			:duration="300"
 			indicator-color="rgba(255,255,255,0.3)"
-			indicator-active-color="#10b981"
+			indicator-active-color="#3B91A8"
 			@change="handleSwiperChange"
 		>
 			<swiper-item v-for="(item, index) in viewerSlides" :key="item.id">
@@ -455,7 +455,7 @@ onHide(() => {
 }
 
 .brightness-toggle.active {
-	background: rgba(16, 185, 129, 0.9);
+	background: rgba(59, 145, 168, 0.9);
 }
 
 .brightness-toggle-icon {
@@ -516,7 +516,7 @@ onHide(() => {
 	bottom: 20px;
 	left: 50%;
 	transform: translateX(-50%);
-	background: rgba(16, 185, 129, 0.9);
+	background: rgba(59, 145, 168, 0.9);
 	padding: 8px 18px;
 	border-radius: 20px;
 	animation: fadeInOut 3s ease-in-out;
@@ -551,7 +551,7 @@ onHide(() => {
 
 /* 引导卡片 */
 .onboarding-card {
-	background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%);
+	background: linear-gradient(135deg, rgba(59, 145, 168, 0.18) 0%, rgba(118, 198, 210, 0.18) 100%);
 	backdrop-filter: blur(20px);
 	border-radius: 24px;
 	padding: 32px 24px;
@@ -583,7 +583,7 @@ onHide(() => {
 .step-number {
 	width: 32px;
 	height: 32px;
-	background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+	background: linear-gradient(135deg, #3B91A8 0%, #76C6D2 100%);
 	border-radius: 50%;
 	display: flex;
 	align-items: center;
@@ -609,10 +609,10 @@ onHide(() => {
 }
 
 .note {
-	background: rgba(16, 185, 129, 0.15);
-	border-left: 3px solid #10b981;
+	background: rgba(59, 145, 168, 0.18);
+	border-left: 3px solid #3B91A8;
 	padding: 12px 16px;
-	border-radius: 8px;
+	border-radius: 14px;
 	margin-bottom: 24px;
 }
 
@@ -624,13 +624,13 @@ onHide(() => {
 
 .btn-start {
 	width: 100%;
-	background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+	background: linear-gradient(135deg, #3B91A8 0%, #76C6D2 100%);
 	color: #fff;
 	border: none;
 	border-radius: 16px;
 	font-size: 17px;
 	font-weight: 600;
 	padding: 16px;
-	box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+	box-shadow: 0 4px 12px rgba(59, 145, 168, 0.16);
 }
 </style>

@@ -58,14 +58,14 @@
 					<view class="toggle-copy">
 						<text class="toggle-title">条码页自动点亮</text>
 					</view>
-					<switch :checked="viewerAutoBrightnessEnabled" color="#10b981" @change="handleViewerAutoBrightnessChange" />
+					<switch :checked="viewerAutoBrightnessEnabled" color="#3B91A8" @change="handleViewerAutoBrightnessChange" />
 				</view>
 
 				<view class="toggle-row">
 					<view class="toggle-copy">
 						<text class="toggle-title">驿站页自动点亮</text>
 					</view>
-					<switch :checked="stationAutoBrightnessEnabled" color="#10b981" @change="handleStationAutoBrightnessChange" />
+					<switch :checked="stationAutoBrightnessEnabled" color="#3B91A8" @change="handleStationAutoBrightnessChange" />
 				</view>
 			</view>
 
@@ -667,9 +667,12 @@ onMounted(() => {
 	display: flex;
 	flex-direction: column;
 	min-height: 100vh;
-	background-image: linear-gradient(rgba(245, 245, 245, 0.72), rgba(245, 245, 245, 0.72)), url('/static/settings-background.webp');
+	background-color: #F3F7FA;
+	background-image: url('/static/settings-background.webp');
 	background-position: center;
-	background-size: cover;
+	background-size: auto 100vh;
+	background-repeat: no-repeat;
+	background-attachment: fixed;
 	position: relative;
 }
 
@@ -688,9 +691,9 @@ onMounted(() => {
 
 .share-btn {
 	padding: 4px 12px;
-	background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+	background: linear-gradient(135deg, #3B91A8 0%, #76C6D2 100%);
 	border-radius: 999px;
-	box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+	box-shadow: 0 2px 6px rgba(59, 145, 168, 0.14);
 }
 
 .share-btn:active {
@@ -705,11 +708,11 @@ onMounted(() => {
 
 .subtitle {
 	font-size: 12px;
-	color: #0f766e;
+	color: #243447;
 	display: block;
-	background: rgba(16, 185, 129, 0.1);
-	border: 1px solid rgba(16, 185, 129, 0.16);
-	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.84);
+	border: 1px solid rgba(59, 145, 168, 0.32);
+	border-radius: 14px;
 	padding: 6px 10px;
 }
 
@@ -720,9 +723,9 @@ onMounted(() => {
 .feature-section {
 	margin-bottom: 12px;
 	padding: 12px;
-	background: #fff;
-	border-radius: 8px;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+	background: rgba(255, 255, 255, 0.78);
+	border-radius: 14px;
+	box-shadow: 0 2px 8px rgba(36, 52, 71, 0.06);
 }
 
 .compact-section {
@@ -744,14 +747,14 @@ onMounted(() => {
 .section-title {
 	font-size: 16px;
 	font-weight: bold;
-	color: #111827;
+	color: #243447;
 	display: block;
 	margin-bottom: 3px;
 }
 
 .section-desc {
 	font-size: 11px;
-	color: #888;
+	color: #68798A;
 	line-height: 1.4;
 	display: block;
 	flex-shrink: 0;
@@ -766,7 +769,7 @@ onMounted(() => {
 }
 
 .setting-row+.setting-row {
-	border-top: 1px solid #eee;
+	border-top: 1px solid #D9E5EB;
 }
 
 .setting-row-child {
@@ -775,7 +778,7 @@ onMounted(() => {
 
 .setting-row-title {
 	font-size: 14px;
-	color: #333;
+	color: #243447;
 	font-weight: 500;
 	line-height: 1.4;
 }
@@ -789,17 +792,17 @@ onMounted(() => {
 
 .setting-row-text {
 	font-size: 13px;
-	color: #10b981;
+	color: #3B91A8;
 	line-height: 1;
 }
 
 .setting-row-text.subtle {
-	color: #8a8f98;
+	color: #68798A;
 }
 
 .setting-row-arrow {
 	font-size: 12px;
-	color: #a1a1aa;
+	color: #8BA0AD;
 	line-height: 1;
 }
 
@@ -812,7 +815,7 @@ onMounted(() => {
 }
 
 .toggle-row+.toggle-row {
-	border-top: 1px solid #eee;
+	border-top: 1px solid #D9E5EB;
 }
 
 .toggle-copy {
@@ -823,7 +826,7 @@ onMounted(() => {
 .toggle-title {
 	font-size: 14px;
 	font-weight: 500;
-	color: #333;
+	color: #243447;
 	display: block;
 }
 
@@ -834,13 +837,13 @@ onMounted(() => {
 .info-section {
 	margin-top: 10px;
 	padding: 12px;
-	background-color: #f9f9f9;
-	border-radius: 8px;
+	background-color: rgba(249, 249, 249, 0.76);
+	border-radius: 14px;
 }
 
 .info-text {
 	font-size: 12px;
-	color: #666;
+	color: #68798A;
 	display: block;
 	line-height: 1.65;
 	margin-bottom: 2px;
@@ -851,9 +854,9 @@ onMounted(() => {
 	background: rgba(255, 255, 255, 0.6);
 	backdrop-filter: blur(10px);
 	-webkit-backdrop-filter: blur(10px);
-	border-radius: 12px;
+	border-radius: 14px;
 	padding: 16px;
-	border: 1px solid rgba(16, 185, 129, 0.1);
+	border: 1px solid rgba(59, 145, 168, 0.18);
 }
 
 .about-block {
@@ -862,14 +865,14 @@ onMounted(() => {
 
 .about-text {
 	font-size: 12px;
-	color: #666;
+	color: #68798A;
 	line-height: 1.55;
 	display: block;
 }
 
 .divider {
 	height: 1px;
-	background: linear-gradient(to right, transparent, rgba(16, 185, 129, 0.3), transparent);
+	background: linear-gradient(to right, transparent, rgba(59, 145, 168, 0.3), transparent);
 	margin: 14px 0;
 }
 
@@ -881,22 +884,22 @@ onMounted(() => {
 .author-title {
 	font-size: 14px;
 	font-weight: 600;
-	color: #333;
+	color: #243447;
 	display: block;
 	margin-bottom: 8px;
 }
 
 .author-collab {
 	font-size: 13px;
-	color: #10b981;
+	color: #3B91A8;
 	font-weight: 500;
 	display: block;
 	margin-bottom: 6px;
 }
 
 .contact-section {
-	background: rgba(16, 185, 129, 0.05);
-	border-radius: 8px;
+	background: rgba(118, 198, 210, 0.14);
+	border-radius: 14px;
 	padding: 10px;
 	text-align: center;
 }
@@ -904,25 +907,25 @@ onMounted(() => {
 .contact-title {
 	font-size: 13px;
 	font-weight: 600;
-	color: #333;
+	color: #243447;
 	display: block;
 	margin-bottom: 6px;
 }
 
 .contact-item {
 	font-size: 12px;
-	color: #666;
+	color: #68798A;
 	display: block;
 	line-height: 1.65;
 }
 
 .contact-link {
-	color: #10b981;
+	color: #3B91A8;
 }
 
 .source-section {
-	background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(6, 182, 212, 0.05) 100%);
-	border-radius: 8px;
+	background: linear-gradient(135deg, rgba(59, 145, 168, 0.1) 0%, rgba(118, 198, 210, 0.12) 100%);
+	border-radius: 14px;
 	padding: 10px;
 	margin-top: 10px;
 }
@@ -930,7 +933,7 @@ onMounted(() => {
 .source-title {
 	font-size: 13px;
 	font-weight: 600;
-	color: #333;
+	color: #243447;
 	display: block;
 	margin-bottom: 4px;
 	text-align: center;
@@ -938,7 +941,7 @@ onMounted(() => {
 
 .source-hint {
 	font-size: 11px;
-	color: #999;
+	color: #68798A;
 	display: block;
 	text-align: center;
 	margin-bottom: 10px;
@@ -953,20 +956,20 @@ onMounted(() => {
 .source-link {
 	flex: 1;
 	max-width: 110px;
-	background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
-	border-radius: 8px;
+	background: linear-gradient(135deg, #3B91A8 0%, #76C6D2 100%);
+	border-radius: 14px;
 	padding: 8px;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	gap: 3px;
-	box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
+	box-shadow: 0 2px 6px rgba(59, 145, 168, 0.14);
 	transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .source-link:active {
 	transform: scale(0.95);
-	box-shadow: 0 1px 3px rgba(16, 185, 129, 0.3);
+	box-shadow: 0 1px 3px rgba(59, 145, 168, 0.18);
 }
 
 .reset-section {
@@ -1006,9 +1009,9 @@ onMounted(() => {
 	justify-content: center;
 	gap: 4px;
 	padding: 4px 10px;
-	background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 182, 212, 0.08) 100%);
-	border: 1px solid rgba(16, 185, 129, 0.15);
-	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.84);
+	border: 1px solid rgba(59, 145, 168, 0.32);
+	border-radius: 14px;
 }
 
 .download-stat-icon {
@@ -1017,13 +1020,13 @@ onMounted(() => {
 
 .download-stat-label {
 	font-size: 11px;
-	color: #6b7280;
+	color: #68798A;
 }
 
 .download-stat-count {
 	font-size: 12px;
 	font-weight: 700;
-	color: #10b981;
+	color: #3B91A8;
 }
 
 /* 弹窗相关 */
@@ -1053,7 +1056,7 @@ onMounted(() => {
 	width: 85%;
 	max-width: 340px;
 	background: #fff;
-	border-radius: 12px;
+	border-radius: 16px;
 	padding: 20px;
 	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 	z-index: 1000;
@@ -1069,12 +1072,12 @@ onMounted(() => {
 .feedback-title {
 	font-size: 16px;
 	font-weight: 600;
-	color: #333;
+	color: #243447;
 }
 
 .feedback-close {
 	font-size: 24px;
-	color: #999;
+	color: #68798A;
 	line-height: 1;
 	padding: 0 4px;
 }
@@ -1082,8 +1085,8 @@ onMounted(() => {
 .feedback-textarea {
 	width: 100%;
 	height: 100px;
-	background: #f8f9fa;
-	border-radius: 8px;
+	background: #F3F7FA;
+	border-radius: 14px;
 	padding: 10px;
 	font-size: 14px;
 	margin-bottom: 12px;
@@ -1093,8 +1096,8 @@ onMounted(() => {
 .feedback-input {
 	width: 100%;
 	height: 40px;
-	background: #f8f9fa;
-	border-radius: 8px;
+	background: #F3F7FA;
+	border-radius: 14px;
 	padding: 0 10px;
 	font-size: 14px;
 	margin-bottom: 20px;
@@ -1115,7 +1118,7 @@ onMounted(() => {
 .feedback-btn {
 	flex: 1;
 	font-size: 14px;
-	border-radius: 8px;
+	border-radius: 14px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -1129,12 +1132,12 @@ onMounted(() => {
 }
 
 .secondary-btn {
-	background: #f3f4f6;
-	color: #4b5563;
+	background: #E8F2F5;
+	color: #243447;
 }
 
 .primary-btn {
-	background: #10b981;
+	background: #3B91A8;
 	color: #fff;
 }
 

@@ -50,7 +50,7 @@ const saveImage = () => {
 	display: flex;
 	flex-direction: column;
 	min-height: 100vh;
-	background-color: #ffffff;
+	background-color: #F3F7FA;
 	justify-content: center;
 	align-items: center;
 }
@@ -70,7 +70,7 @@ const saveImage = () => {
 
 .share-tip {
 	font-size: 16px;
-	color: #333;
+	color: #243447;
 	font-weight: 500;
 }
 </style>

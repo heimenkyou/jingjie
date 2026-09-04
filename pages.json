@@ -36,12 +36,12 @@
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
 		"navigationBarTitleText": "净界",
-		"navigationBarBackgroundColor": "#F8F8F8",
-		"backgroundColor": "#F8F8F8"
+		"navigationBarBackgroundColor": "#F3F7FA",
+		"backgroundColor": "#F3F7FA"
 	},
 	"tabBar": {
-		"color": "#7A7E83",
-		"selectedColor": "#10b981",
+		"color": "#68798A",
+		"selectedColor": "#3B91A8",
 		"borderStyle": "black",
 		"backgroundColor": "#ffffff",
 		"list": [

@@ -170,7 +170,7 @@ const fallbackWebviewStyles = computed(() => ({
 	top: `${headerTotalHeight}px`,
 	bottom: '0px',
 	progress: {
-		color: '#10b981'
+		color: '#3B91A8'
 	}
 }));
 
@@ -318,7 +318,7 @@ const getChildWebviewStyle = () => {
 		left: '0px',
 		right: '0px',
 		progress: {
-			color: '#10b981'
+			color: '#3B91A8'
 		},
 		plusrequire: 'none',
 		'uni-app': 'none',
@@ -728,7 +728,7 @@ onBackPress((options) => {
 <style scoped>
 .station-page {
 	min-height: 100vh;
-	background: #f5f5f5;
+	background: #F3F7FA;
 }
 
 .station-header {
@@ -739,7 +739,7 @@ onBackPress((options) => {
 	z-index: 20;
 	box-sizing: border-box;
 	background: rgba(255, 255, 255, 0.96);
-	border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+	border-bottom: 1px solid #D9E5EB;
 }
 
 .toolbar {
@@ -765,13 +765,13 @@ onBackPress((options) => {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	border-radius: 8px;
+	border-radius: 14px;
 	background: transparent;
-	color: #555;
+	color: #68798A;
 }
 
 .segment-item.active {
-	background: #10b981;
+	background: #3B91A8;
 	color: #fff;
 }
 
@@ -790,10 +790,10 @@ onBackPress((options) => {
 	height: 32px;
 	padding: 0;
 	margin: 0;
-	border-radius: 8px;
-	border: 1px solid rgba(16, 185, 129, 0.28);
-	background: rgba(16, 185, 129, 0.08);
-	color: #10b981;
+	border-radius: 14px;
+	border: 1px solid rgba(59, 145, 168, 0.32);
+	background: rgba(118, 198, 210, 0.16);
+	color: #3B91A8;
 	font-size: 12px;
 	line-height: 32px;
 }
@@ -809,14 +809,14 @@ onBackPress((options) => {
 	justify-content: center;
 	gap: 6px;
 	margin-top: -3px;
-	color: #10b981;
+	color: #3B91A8;
 }
 
 .loading-dot {
 	width: 6px;
 	height: 6px;
 	border-radius: 50%;
-	background: #10b981;
+	background: #3B91A8;
 	animation: pulse 0.8s ease-in-out infinite;
 }
 
@@ -872,7 +872,7 @@ onBackPress((options) => {
 }
 
 .brightness-toggle.active {
-	background: rgba(16, 185, 129, 0.92);
+	background: rgba(59, 145, 168, 0.92);
 }
 
 .brightness-toggle-icon {
@@ -893,7 +893,7 @@ onBackPress((options) => {
 	left: 50%;
 	z-index: 30;
 	transform: translateX(-50%);
-	background: rgba(16, 185, 129, 0.9);
+	background: rgba(59, 145, 168, 0.9);
 	padding: 8px 18px;
 	border-radius: 20px;
 	animation: fadeInOut 3s ease-in-out;
