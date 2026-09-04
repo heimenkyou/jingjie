@@ -1,9 +1,9 @@
 {
-  "versionName": "v2.1.1",
-  "versionCode": 211,
-  "title": "v2.1.1 - 问题修复与细节优化",
-  "log": "🔧 修复\n彻底解决了驿站页面偶尔错乱、按钮点不动的问题。\n\n⚡️细节优化\n* 身份码预加载提升速度\n* 优化了公告栏展示样式",
+  "versionName": "v2.2.0",
+  "versionCode": 220,
+  "title": "v2.2.0 - 驿站体验升级",
+  "log": "驿站\n* 身份码和我的驿站直接跳转淘宝\n* 支持自动跳转\n* 支持添加桌面快捷方式",
   "url": "https://jingjie.luowb.cn/?action=autodownload",
-  "date": "2026-05-08",
+  "date": "2026-09-05",
   "force": true
 }
