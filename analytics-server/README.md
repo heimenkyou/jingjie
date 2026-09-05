@@ -51,6 +51,7 @@ uv run gunicorn --workers 1 --threads 1 --bind 127.0.0.1:8000 app:app
 | `POST` | `/api/jingjie-track` | 写入客户端统计事件 |
 | `GET` | `/api/admin/analytics/daily` | 查询按日 PV、UV |
 | `GET` | `/api/admin/analytics/pages` | 查询按页面 PV、UV |
+| `GET` | `/api/admin/analytics/versions` | 查询按版本分布的设备数与事件数 |
 | `GET` | `/api/downloads` | 查询累计下载次数 |
 | `POST` | `/api/downloads` | 增加下载次数 |
 | `POST` | `/api/feedback` | 提交反馈 |

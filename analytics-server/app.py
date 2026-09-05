@@ -23,7 +23,11 @@ EVENT_PROPERTIES = {
     'station_open_identity_code': set(),
     'station_open_home': set(),
     'feedback_submit': set(),
+    'app_error': {'message'},
+    'update_download': {'source'},
+    'update_install': set(),
 }
+APP_ERROR_MESSAGE_LIMIT = 1000
 PAGE_PATHS = {
     '/pages/viewer/index',
     '/pages/station/index',
@@ -132,6 +136,14 @@ def validate_event(payload: Any) -> tuple[dict[str, Any] | None, str | None]:
 
     if event == 'page_show' and properties.get('page') not in PAGE_PATHS:
         return None, 'page 路径不受支持'
+
+    if event == 'app_error':
+        message = properties.get('message')
+        if not isinstance(message, str) or not message.strip() or len(message) > APP_ERROR_MESSAGE_LIMIT:
+            return None, 'message 字段格式错误'
+
+    if event == 'update_download' and properties.get('source') not in ('website', 'inapp'):
+        return None, 'source 字段格式错误'
 
     return {
         'event': event,
@@ -406,6 +418,49 @@ def create_app() -> Flask:
             start=start_date.isoformat(),
             end=end_date.isoformat(),
             pages=[{'page': row['page'], 'pv': row['pv'], 'uv': row['uv']} for row in rows],
+        )
+
+    @app.get('/api/admin/analytics/versions')
+    def version_analytics():
+        """按 app_version 返回活跃设备数与事件数，用于观察版本分布与升级覆盖。"""
+        unauthorized = require_admin_token()
+        if unauthorized:
+            return unauthorized
+
+        start_date, end_date, error = parse_date_range(request.args.get('start'), request.args.get('end'))
+        if error:
+            return jsonify(error=error), 400
+
+        event = request.args.get('event', 'app_launch')
+        if event not in EVENT_PROPERTIES:
+            return jsonify(error='不支持的事件名'), 400
+
+        try:
+            with get_connection(settings).cursor() as cursor:
+                cursor.execute(
+                    '''
+                    SELECT app_version AS version,
+                           COUNT(*) AS count,
+                           COUNT(DISTINCT install_id) AS devices
+                    FROM analytics_events
+                    WHERE created_at >= %s
+                      AND created_at < DATE_ADD(%s, INTERVAL 1 DAY)
+                      AND event_name = %s
+                    GROUP BY app_version
+                    ORDER BY devices DESC
+                    ''',
+                    (start_date, end_date, event),
+                )
+                rows = cursor.fetchall()
+        except MySQLError:
+            app.logger.exception('版本统计查询失败')
+            return jsonify(error='数据库不可用'), 503
+
+        return jsonify(
+            start=start_date.isoformat(),
+            end=end_date.isoformat(),
+            event=event,
+            versions=[{'version': row['version'], 'count': row['count'], 'devices': row['devices']} for row in rows],
         )
 
     return app

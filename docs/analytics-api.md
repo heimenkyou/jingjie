@@ -48,6 +48,9 @@ Content-Type: application/json
 | `station_open_identity_code` | 请求打开淘宝身份码 | `{}` |
 | `station_open_home` | 请求打开淘宝驿站页 | `{}` |
 | `feedback_submit` | 反馈提交成功 | `{}` |
+| `app_error` | 应用发生未捕获异常 | `{ "message": "..." }` |
+| `update_download` | 应用内触发更新包下载 | `{ "source": "inapp" \| "website" }` |
+| `update_install` | 更新包安装成功 | `{}` |
 
 ## 响应
 
@@ -84,6 +87,23 @@ Authorization: Bearer <ANALYTICS_ADMIN_TOKEN>
 | --- | --- | --- |
 | `GET` | `/api/admin/analytics/daily?start=2026-09-01&end=2026-09-05&event=page_show` | 按日查询指定事件的 PV、UV，`event` 默认值为 `page_show` |
 | `GET` | `/api/admin/analytics/pages?start=2026-09-01&end=2026-09-05` | 查询范围内各页面的 PV、UV |
+| `GET` | `/api/admin/analytics/versions?start=2026-09-01&end=2026-09-05&event=app_launch` | 按版本查询设备数与事件数，`event` 默认值为 `app_launch` |
+
+版本分布响应示例：
+
+```json
+{
+  "start": "2026-09-01",
+  "end": "2026-09-05",
+  "event": "app_launch",
+  "versions": [
+    { "version": "v2.2.0", "count": 58, "devices": 41 },
+    { "version": "v2.1.0", "count": 9, "devices": 7 }
+  ]
+}
+```
+
+服务端会校验 `app_error.message` 为长度不超过 1000 的非空字符串，并限定 `update_download.source` 只能取 `website` 或 `inapp`。
 
 日统计响应示例：
 
