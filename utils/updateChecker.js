@@ -5,8 +5,6 @@ const UPDATE_URL = 'https://jingjie.luowb.cn/update.json';
 const OFFICIAL_SITE_URL = 'https://jingjie.luowb.cn';
 const CHECK_INTERVAL = 60 * 1000;
 const REQUEST_TIMEOUT = 3000;
-const UPDATE_NOTIFICATION_ID = 220;
-const UPDATE_NOTIFICATION_CHANNEL = 'jingjie_update_download';
 
 const STORAGE_KEYS = {
 	lastCheckAt: 'updateLastCheckAt',
@@ -133,94 +131,6 @@ const promptDownloadFailed = (info) => {
 	});
 };
 
-const getAndroidVersion = () => Number(String(plus.os.version).match(/\d+/)?.[0]) || 0;
-
-let notificationPermissionGranted = null;
-
-const requestNotificationPermission = (callback) => {
-	if (notificationPermissionGranted !== null) {
-		callback(notificationPermissionGranted);
-		return;
-	}
-
-	if (getAndroidVersion() < 13) {
-		notificationPermissionGranted = true;
-		callback(true);
-		return;
-	}
-
-	plus.android.requestPermissions(
-		['android.permission.POST_NOTIFICATIONS'],
-		(result) => {
-			const deniedPermissions = [...(result.denied || []), ...(result.deniedAlways || [])];
-			notificationPermissionGranted = deniedPermissions.length === 0;
-			callback(notificationPermissionGranted);
-		},
-		() => {
-			notificationPermissionGranted = false;
-			callback(false);
-		}
-	);
-};
-
-const showUpdateNotification = (title, content, percent, ongoing) => {
-	if (!notificationPermissionGranted) return;
-
-	try {
-		const activity = plus.android.runtimeMainActivity();
-		const Context = plus.android.importClass('android.content.Context');
-		const manager = plus.android.invoke(activity, 'getSystemService', plus.android.getAttribute(Context, 'NOTIFICATION_SERVICE'));
-		const NotificationManager = plus.android.importClass('android.app.NotificationManager');
-		const appInfo = plus.android.invoke(activity, 'getApplicationInfo');
-		const icon = plus.android.getAttribute(appInfo, 'icon');
-
-		if (getAndroidVersion() >= 8) {
-			const channel = plus.android.newObject(
-				'android.app.NotificationChannel',
-				UPDATE_NOTIFICATION_CHANNEL,
-				'应用更新',
-				plus.android.getAttribute(NotificationManager, 'IMPORTANCE_LOW')
-			);
-			plus.android.invoke(manager, 'createNotificationChannel', channel);
-		}
-
-		const builder = getAndroidVersion() >= 8
-			? plus.android.newObject('android.app.Notification$Builder', activity, UPDATE_NOTIFICATION_CHANNEL)
-			: plus.android.newObject('android.app.Notification$Builder', activity);
-
-		plus.android.invoke(builder, 'setSmallIcon', icon);
-		plus.android.invoke(builder, 'setContentTitle', title);
-		plus.android.invoke(builder, 'setContentText', content);
-		plus.android.invoke(builder, 'setOnlyAlertOnce', true);
-		plus.android.invoke(builder, 'setOngoing', ongoing);
-		plus.android.invoke(builder, 'setProgress', 100, percent, false);
-		plus.android.invoke(manager, 'notify', UPDATE_NOTIFICATION_ID, plus.android.invoke(builder, 'build'));
-	} catch (error) {
-		console.warn('[净界-updateChecker] 更新通知创建失败', error);
-	}
-};
-
-/**
- * 主动请求更新通知权限，并发送一条测试通知。
- */
-export const requestUpdateNotificationPermission = () => {
-	// #ifdef APP-PLUS
-	requestNotificationPermission((granted) => {
-		if (!granted) {
-			uni.showToast({ title: '未获得通知权限', icon: 'none' });
-			return;
-		}
-
-		showUpdateNotification('净界通知已开启', '更新下载进度会显示在通知栏', 0, false);
-		uni.showToast({ title: '已发送测试通知', icon: 'none' });
-	});
-	// #endif
-
-	// #ifdef H5
-	uni.showToast({ title: '通知仅支持 Android App', icon: 'none' });
-	// #endif
-};
-
 const installApk = (filePath) => {
 	console.log(`[净界-updateChecker] 准备安装 APK: ${filePath}`);
 	plus.runtime.install(
@@ -304,12 +214,8 @@ const startDownload = (info, isSilent, isTest = false) => {
 
 	console.log(`[净界-updateChecker] 开始${isSilent ? '静默' : ''}下载更新: ${info.url}`);
 	let lastProgress = -1;
-	let lastNotificationProgress = -1;
 	isProgressDialogHidden = false;
 	showDownloadProgress(0);
-	requestNotificationPermission(() => {
-		showUpdateNotification('净界正在下载更新', '下载进度 0%', 0, true);
-	});
 	currentDownloadTask = plus.downloader.createDownload(
 		info.url,
 		{ filename: '_downloads/update/' },
@@ -325,7 +231,6 @@ const startDownload = (info, isSilent, isTest = false) => {
 				console.log(`[净界-updateChecker] 下载成功, 保存路径: ${download.filename}`);
 				downloadState = 'SUCCESS';
 				localFilePath = download.filename;
-				showUpdateNotification('净界更新下载完成', '点击应用即可安装新版本', 100, false);
 
 				uni.setStorageSync(STORAGE_KEYS.downloadedVersion, currentTargetVersion);
 				uni.setStorageSync(STORAGE_KEYS.downloadedFilePath, localFilePath);
@@ -334,7 +239,6 @@ const startDownload = (info, isSilent, isTest = false) => {
 				console.warn(`[净界-updateChecker] 下载失败, HTTP状态码: ${status}, Content-Type: ${contentType}`);
 				downloadState = 'IDLE';
 				localFilePath = null;
-				showUpdateNotification('净界更新下载失败', '请打开应用重试或前往官网下载', 0, false);
 				promptDownloadFailed(info);
 			}
 		}
@@ -351,10 +255,6 @@ const startDownload = (info, isSilent, isTest = false) => {
 
 		lastProgress = percent;
 		showDownloadProgress(percent, task.downloadedSize, task.totalSize);
-
-		if (percent - lastNotificationProgress < 5 && percent !== 100) return;
-		lastNotificationProgress = percent;
-		showUpdateNotification('净界正在下载更新', `下载进度 ${percent}%`, percent, true);
 	});
 
 	currentDownloadTask.start();

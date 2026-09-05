@@ -104,14 +104,6 @@
 					</view>
 				</view>
 
-				<view class="setting-row" @click="requestUpdateNotificationPermission">
-					<text class="setting-row-title">更新通知</text>
-					<view class="setting-row-value">
-						<text class="setting-row-text subtle">下载进度提醒</text>
-						<text class="setting-row-arrow">></text>
-					</view>
-				</view>
-
 				<view class="setting-row" @click="openOfficialWebsite">
 					<text class="setting-row-title">官方网站</text>
 					<view class="setting-row-value">
@@ -215,7 +207,7 @@ import { onShow } from '@dcloudio/uni-app';
 import GlobalNoticeBar from '@/components/GlobalNoticeBar.vue';
 // #endif
 import { APP_VERSION_NAME } from '@/utils/appVersion.js';
-import { checkForUpdate, requestUpdateNotificationPermission, testUpdateDownload } from '@/utils/updateChecker.js';
+import { checkForUpdate, testUpdateDownload } from '@/utils/updateChecker.js';
 import { BRIGHTNESS_SCENES, getBrightnessPreferences, setSceneAutoBrightnessEnabled } from '@/utils/brightness.js';
 import { getStationAutoOpenTarget, setStationAutoOpenTarget } from '@/utils/station.js';
 import { ANALYTICS_EVENTS, track, trackPage } from '@/utils/analytics.js';
