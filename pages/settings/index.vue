@@ -97,10 +97,26 @@
 					</view>
 				</view>
 
-				<view class="setting-row" @click="handleCheckUpdate">
+				<view class="setting-row" @click="handleCheckUpdate" @longpress="handleTestUpdateDownload">
 					<text class="setting-row-title">检查更新</text>
 					<view class="setting-row-value">
 						<text class="setting-row-text subtle">{{ currentVersionName }}</text>
+					</view>
+				</view>
+
+				<view class="setting-row" @click="requestUpdateNotificationPermission">
+					<text class="setting-row-title">更新通知</text>
+					<view class="setting-row-value">
+						<text class="setting-row-text subtle">下载进度提醒</text>
+						<text class="setting-row-arrow">></text>
+					</view>
+				</view>
+
+				<view class="setting-row" @click="openOfficialWebsite">
+					<text class="setting-row-title">官方网站</text>
+					<view class="setting-row-value">
+						<text class="setting-row-text subtle">jingjie.luowb.cn</text>
+						<text class="setting-row-arrow">></text>
 					</view>
 				</view>
 
@@ -188,6 +204,7 @@
 				</view>
 			</view>
 		</view>
+		<UpdateDownloadDialog />
 	</view>
 </template>
 
@@ -198,10 +215,11 @@ import { onShow } from '@dcloudio/uni-app';
 import GlobalNoticeBar from '@/components/GlobalNoticeBar.vue';
 // #endif
 import { APP_VERSION_NAME } from '@/utils/appVersion.js';
-import { checkForUpdate } from '@/utils/updateChecker.js';
+import { checkForUpdate, requestUpdateNotificationPermission, testUpdateDownload } from '@/utils/updateChecker.js';
 import { BRIGHTNESS_SCENES, getBrightnessPreferences, setSceneAutoBrightnessEnabled } from '@/utils/brightness.js';
 import { getStationAutoOpenTarget, setStationAutoOpenTarget } from '@/utils/station.js';
 import { ANALYTICS_EVENTS, track, trackPage } from '@/utils/analytics.js';
+import UpdateDownloadDialog from '@/components/UpdateDownloadDialog.vue';
 
 const DEFAULT_STARTUP_TAB = 'barcode';
 const startupTab = ref(DEFAULT_STARTUP_TAB);
@@ -514,6 +532,29 @@ const handleCheckUpdate = () => {
 };
 
 /**
+ * 长按检查更新入口时下载当前安装包，用于验证下载进度。
+ */
+const handleTestUpdateDownload = () => {
+	uni.showToast({ title: '开始测试更新下载', icon: 'none' });
+	testUpdateDownload();
+};
+
+/**
+ * 打开官网，供用户手动下载最新安装包。
+ */
+const openOfficialWebsite = () => {
+	const url = 'https://jingjie.luowb.cn';
+
+	// #ifdef APP-PLUS
+	plus.runtime.openURL(url);
+	// #endif
+
+	// #ifdef H5
+	window.open(url, '_blank');
+	// #endif
+};
+
+/**
  * 打开源码仓库链接。
  * @param {string} platform 平台类型
  */
@@ -536,8 +577,7 @@ const openSourceLink = (platform) => {
 };
 
 /**
- * 从 webhook 查询接口获取累计下载量。
- * 接口有 180s 缓存，无需频繁调用。
+ * 从统计服务获取累计下载量。
  */
 const loadDownloadCount = () => {
 	uni.request({

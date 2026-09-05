@@ -1,8 +1,12 @@
 import { APP_VERSION_CODE as CURRENT_VERSION_CODE, APP_VERSION_NAME as CURRENT_VERSION_NAME } from '@/utils/appVersion.js';
+import { ref } from 'vue';
 
 const UPDATE_URL = 'https://jingjie.luowb.cn/update.json';
+const OFFICIAL_SITE_URL = 'https://jingjie.luowb.cn';
 const CHECK_INTERVAL = 60 * 1000;
 const REQUEST_TIMEOUT = 3000;
+const UPDATE_NOTIFICATION_ID = 220;
+const UPDATE_NOTIFICATION_CHANNEL = 'jingjie_update_download';
 
 const STORAGE_KEYS = {
 	lastCheckAt: 'updateLastCheckAt',
@@ -19,6 +23,56 @@ let localFilePath = uni.getStorageSync(STORAGE_KEYS.downloadedFilePath) || null;
 // 下载状态管理，如果在缓存里发现已经下载过新版本，恢复状态为 SUCCESS
 let downloadState = (localFilePath && currentTargetVersion > CURRENT_VERSION_CODE) ? 'SUCCESS' : 'IDLE';
 let currentDownloadTask = null;
+let isProgressDialogHidden = false;
+export const updateDownloadProgress = ref({
+	visible: false,
+	percent: 0,
+	downloadedSize: 0,
+	totalSize: 0
+});
+export const updatePrompt = ref({
+	visible: false,
+	title: '',
+	content: '',
+	confirmText: '确定',
+	cancelText: '取消',
+	showCancel: true,
+	onConfirm: null,
+	onCancel: null
+});
+
+const showDownloadProgress = (percent, downloadedSize = 0, totalSize = 0) => {
+	updateDownloadProgress.value = {
+		visible: !isProgressDialogHidden,
+		percent,
+		downloadedSize,
+		totalSize
+	};
+};
+
+export const hideUpdateDownloadProgress = () => {
+	isProgressDialogHidden = true;
+	updateDownloadProgress.value = {
+		...updateDownloadProgress.value,
+		visible: false
+	};
+};
+
+const showUpdatePrompt = (options) => {
+	updatePrompt.value = {
+		visible: true,
+		...options
+	};
+};
+
+export const resolveUpdatePrompt = (confirmed) => {
+	const handler = confirmed ? updatePrompt.value.onConfirm : updatePrompt.value.onCancel;
+	updatePrompt.value = {
+		...updatePrompt.value,
+		visible: false
+	};
+	handler?.();
+};
 
 const requestUpdateInfo = () => new Promise((resolve, reject) => {
 	uni.request({
@@ -52,23 +106,119 @@ const reportDownload = () => {
 	});
 };
 
-const promptDownloading = (info) => {
-	let percent = 0;
-	if (currentDownloadTask && currentDownloadTask.totalSize > 0) {
-		percent = Math.floor((currentDownloadTask.downloadedSize / currentDownloadTask.totalSize) * 100);
-	}
-	const title = info.title || `新版本 ${info.versionName} 下载中`;
-	const updateLog = [info.date, info.log].filter(Boolean).join('\n\n');
-	
-	// 原生 Modal 无法动态刷新按钮文字，所以静态展示进度，点击可关闭
-	const content = `更新内容：\n${updateLog}\n\n正在后台下载...`;
+const getDownloadProgress = () => {
+	if (!currentDownloadTask || currentDownloadTask.totalSize <= 0) return 0;
+	return Math.min(100, Math.floor((currentDownloadTask.downloadedSize / currentDownloadTask.totalSize) * 100));
+};
 
-	uni.showModal({
-		title,
-		content,
-		confirmText: '转入后台',
-		showCancel: false
+export const openOfficialDownloadPage = () => {
+	// #ifdef APP-PLUS
+	plus.runtime.openURL(OFFICIAL_SITE_URL);
+	// #endif
+
+	// #ifdef H5
+	window.open(OFFICIAL_SITE_URL, '_blank');
+	// #endif
+};
+
+const promptDownloadFailed = (info) => {
+	showUpdatePrompt({
+		title: '更新下载失败',
+		content: '网络可能不稳定。你可以重试，或前往官网手动下载安装包覆盖安装。',
+		confirmText: '官网下载',
+		cancelText: '重新下载',
+		showCancel: true,
+		onConfirm: openOfficialDownloadPage,
+		onCancel: () => startDownload(info, false, info.isTest)
 	});
+};
+
+const getAndroidVersion = () => Number(String(plus.os.version).match(/\d+/)?.[0]) || 0;
+
+let notificationPermissionGranted = null;
+
+const requestNotificationPermission = (callback) => {
+	if (notificationPermissionGranted !== null) {
+		callback(notificationPermissionGranted);
+		return;
+	}
+
+	if (getAndroidVersion() < 13) {
+		notificationPermissionGranted = true;
+		callback(true);
+		return;
+	}
+
+	plus.android.requestPermissions(
+		['android.permission.POST_NOTIFICATIONS'],
+		(result) => {
+			const deniedPermissions = [...(result.denied || []), ...(result.deniedAlways || [])];
+			notificationPermissionGranted = deniedPermissions.length === 0;
+			callback(notificationPermissionGranted);
+		},
+		() => {
+			notificationPermissionGranted = false;
+			callback(false);
+		}
+	);
+};
+
+const showUpdateNotification = (title, content, percent, ongoing) => {
+	if (!notificationPermissionGranted) return;
+
+	try {
+		const activity = plus.android.runtimeMainActivity();
+		const Context = plus.android.importClass('android.content.Context');
+		const manager = plus.android.invoke(activity, 'getSystemService', plus.android.getAttribute(Context, 'NOTIFICATION_SERVICE'));
+		const NotificationManager = plus.android.importClass('android.app.NotificationManager');
+		const appInfo = plus.android.invoke(activity, 'getApplicationInfo');
+		const icon = plus.android.getAttribute(appInfo, 'icon');
+
+		if (getAndroidVersion() >= 8) {
+			const channel = plus.android.newObject(
+				'android.app.NotificationChannel',
+				UPDATE_NOTIFICATION_CHANNEL,
+				'应用更新',
+				plus.android.getAttribute(NotificationManager, 'IMPORTANCE_LOW')
+			);
+			plus.android.invoke(manager, 'createNotificationChannel', channel);
+		}
+
+		const builder = getAndroidVersion() >= 8
+			? plus.android.newObject('android.app.Notification$Builder', activity, UPDATE_NOTIFICATION_CHANNEL)
+			: plus.android.newObject('android.app.Notification$Builder', activity);
+
+		plus.android.invoke(builder, 'setSmallIcon', icon);
+		plus.android.invoke(builder, 'setContentTitle', title);
+		plus.android.invoke(builder, 'setContentText', content);
+		plus.android.invoke(builder, 'setOnlyAlertOnce', true);
+		plus.android.invoke(builder, 'setOngoing', ongoing);
+		plus.android.invoke(builder, 'setProgress', 100, percent, false);
+		plus.android.invoke(manager, 'notify', UPDATE_NOTIFICATION_ID, plus.android.invoke(builder, 'build'));
+	} catch (error) {
+		console.warn('[净界-updateChecker] 更新通知创建失败', error);
+	}
+};
+
+/**
+ * 主动请求更新通知权限，并发送一条测试通知。
+ */
+export const requestUpdateNotificationPermission = () => {
+	// #ifdef APP-PLUS
+	requestNotificationPermission((granted) => {
+		if (!granted) {
+			uni.showToast({ title: '未获得通知权限', icon: 'none' });
+			return;
+		}
+
+		showUpdateNotification('净界通知已开启', '更新下载进度会显示在通知栏', 0, false);
+		uni.showToast({ title: '已发送测试通知', icon: 'none' });
+	});
+	// #endif
+
+	// #ifdef H5
+	uni.showToast({ title: '通知仅支持 Android App', icon: 'none' });
+	// #endif
 };
 
 const installApk = (filePath) => {
@@ -98,22 +248,26 @@ const promptInstall = (info) => {
 	const updateLog = [info.date, info.log].filter(Boolean).join('\n\n');
 	const content = `安装包已下载完成！\n\n更新内容：\n${updateLog}\n\n是否立即安装？`;
 
-	uni.showModal({
+	showUpdatePrompt({
 		title,
 		content,
 		confirmText: '立即安装',
 		cancelText: '稍后',
 		showCancel: !info.force,
-		success: (res) => {
-			if (res.confirm) {
-				installApk(localFilePath);
+		onConfirm: () => installApk(localFilePath),
+		onCancel: () => {
+			if (info.isTest) {
+				downloadState = 'IDLE';
+				localFilePath = null;
+				uni.removeStorageSync(STORAGE_KEYS.downloadedVersion);
+				uni.removeStorageSync(STORAGE_KEYS.downloadedFilePath);
+				return;
+			}
+
+			if (info.force) {
+				setTimeout(() => promptInstall(info), 0);
 			} else {
-				if (info.force) {
-					// 强制更新不可跳过，缩小重弹延迟
-					setTimeout(() => promptInstall(info), 0);
-				} else {
-					uni.setStorageSync(STORAGE_KEYS.ignoredVersion, info.versionCode);
-				}
+				uni.setStorageSync(STORAGE_KEYS.ignoredVersion, info.versionCode);
 			}
 		}
 	});
@@ -123,74 +277,91 @@ const promptDownload = (info) => {
 	const title = info.title || `发现新版本 ${info.versionName}`;
 	const content = [info.date, info.log].filter(Boolean).join('\n\n');
 
-	uni.showModal({
+	showUpdatePrompt({
 		title,
 		content,
 		confirmText: '开始下载',
 		cancelText: '稍后',
 		showCancel: !info.force,
-		success: (res) => {
-			if (res.confirm) {
-				startDownload(info, false);
+		onConfirm: () => startDownload(info, false, info.isTest),
+		onCancel: () => {
+			if (info.force) {
+				setTimeout(() => promptDownload(info), 0);
 			} else {
-				if (info.force) {
-					// 强制更新不可跳过，缩小重弹延迟
-					setTimeout(() => promptDownload(info), 0);
-				} else {
-					uni.setStorageSync(STORAGE_KEYS.ignoredVersion, info.versionCode);
-				}
+				uni.setStorageSync(STORAGE_KEYS.ignoredVersion, info.versionCode);
 			}
 		}
 	});
 };
 
-const startDownload = (info, isSilent) => {
+const startDownload = (info, isSilent, isTest = false) => {
 	if (downloadState === 'DOWNLOADING') {
-		if (!isSilent) promptDownloading(info);
 		return;
 	}
 
 	downloadState = 'DOWNLOADING';
-	reportDownload();
-
-	if (!isSilent) {
-		uni.showToast({ title: '已开始在后台下载更新...', icon: 'none' });
-	}
+	if (!isTest) reportDownload();
 
 	console.log(`[净界-updateChecker] 开始${isSilent ? '静默' : ''}下载更新: ${info.url}`);
+	let lastProgress = -1;
+	let lastNotificationProgress = -1;
+	isProgressDialogHidden = false;
+	showDownloadProgress(0);
+	requestNotificationPermission(() => {
+		showUpdateNotification('净界正在下载更新', '下载进度 0%', 0, true);
+	});
 	currentDownloadTask = plus.downloader.createDownload(
 		info.url,
 		{ filename: '_downloads/update/' },
 		(download, status) => {
 			currentDownloadTask = null;
+			hideUpdateDownloadProgress();
+			const contentType = typeof download.getResponseHeader === 'function'
+				? (download.getResponseHeader('Content-Type') || '').toLowerCase()
+				: '';
+			const isApkResponse = !contentType || contentType.includes('android.package-archive') || contentType.includes('application/octet-stream') || contentType.includes('application/zip');
 
-			if (status === 200) {
+			if (status === 200 && isApkResponse) {
 				console.log(`[净界-updateChecker] 下载成功, 保存路径: ${download.filename}`);
 				downloadState = 'SUCCESS';
 				localFilePath = download.filename;
+				showUpdateNotification('净界更新下载完成', '点击应用即可安装新版本', 100, false);
+
 				uni.setStorageSync(STORAGE_KEYS.downloadedVersion, currentTargetVersion);
 				uni.setStorageSync(STORAGE_KEYS.downloadedFilePath, localFilePath);
 				promptInstall(info);
 			} else {
-				console.warn(`[净界-updateChecker] 下载失败, HTTP状态码: ${status}`);
+				console.warn(`[净界-updateChecker] 下载失败, HTTP状态码: ${status}, Content-Type: ${contentType}`);
 				downloadState = 'IDLE';
 				localFilePath = null;
-				if (!isSilent) {
-					uni.showToast({ title: '下载失败，请重试', icon: 'none' });
-				}
+				showUpdateNotification('净界更新下载失败', '请打开应用重试或前往官网下载', 0, false);
+				promptDownloadFailed(info);
 			}
 		}
 	);
 
 	currentDownloadTask.addEventListener('statechanged', (task) => {
-		// 之前原生等待框的进度回调这里不再需要去 setTitle 了
+		if (task.totalSize <= 0) {
+			showDownloadProgress(0, task.downloadedSize, 0);
+			return;
+		}
+
+		const percent = Math.min(100, Math.floor((task.downloadedSize / task.totalSize) * 100));
+		if (percent === lastProgress) return;
+
+		lastProgress = percent;
+		showDownloadProgress(percent, task.downloadedSize, task.totalSize);
+
+		if (percent - lastNotificationProgress < 5 && percent !== 100) return;
+		lastNotificationProgress = percent;
+		showUpdateNotification('净界正在下载更新', `下载进度 ${percent}%`, percent, true);
 	});
 
 	currentDownloadTask.start();
 };
 // #endif
 
-export const checkForUpdate = async ({ silent = true, force = false } = {}) => {
+export const checkForUpdate = async ({ silent = true, force = false, test = false } = {}) => {
 	if (isChecking) return null;
 	if (silent && !force && shouldSkipSilentCheck()) return null;
 
@@ -202,12 +373,21 @@ export const checkForUpdate = async ({ silent = true, force = false } = {}) => {
 			uni.setStorageSync(STORAGE_KEYS.lastCheckAt, Date.now());
 		}
 
-		const data = await requestUpdateInfo();
+		let data = await requestUpdateInfo();
+		if (test) {
+			data = {
+				...data,
+				versionCode: CURRENT_VERSION_CODE + 1,
+				versionName: `${data.versionName}（测试）`,
+				force: false,
+				isTest: true
+			};
+		}
 		uni.setStorageSync(STORAGE_KEYS.lastCheckAt, Date.now());
 
 		const ignoredVersion = uni.getStorageSync(STORAGE_KEYS.ignoredVersion);
 
-		if (data.versionCode > CURRENT_VERSION_CODE && (!silent || data.force || ignoredVersion !== data.versionCode)) {
+		if ((data.versionCode > CURRENT_VERSION_CODE || test) && (!silent || data.force || ignoredVersion !== data.versionCode)) {
 			console.log(`[净界-updateChecker] 发现新版本信息: ${data.versionName} (code: ${data.versionCode}), 当前状态: ${downloadState}`);
 			
 			if (data.force) {
@@ -233,7 +413,7 @@ export const checkForUpdate = async ({ silent = true, force = false } = {}) => {
 			// #ifdef APP-PLUS
 			if (silent) {
 				if (downloadState === 'IDLE') {
-					startDownload(data, true);
+					startDownload(data, true, data.isTest);
 				} else if (downloadState === 'DOWNLOADING') {
 					// 继续静默，不处理
 				} else if (downloadState === 'SUCCESS') {
@@ -243,7 +423,7 @@ export const checkForUpdate = async ({ silent = true, force = false } = {}) => {
 				if (downloadState === 'IDLE') {
 					promptDownload(data);
 				} else if (downloadState === 'DOWNLOADING') {
-					promptDownloading(data);
+					showDownloadProgress(getDownloadProgress());
 				} else if (downloadState === 'SUCCESS') {
 					promptInstall(data);
 				}
@@ -294,13 +474,20 @@ export const scheduleUpdateCheck = () => {
 	}, 3000);
 };
 
+/**
+ * 模拟高版本更新，复用完整更新流程进行调试。
+ */
+export const testUpdateDownload = async () => {
+	await checkForUpdate({ silent: false, force: true, test: true });
+};
+
 export const showPendingForceUpdate = () => {
 	if (pendingForceUpdate) {
 		// #ifdef APP-PLUS
 		if (downloadState === 'SUCCESS') {
 			promptInstall(pendingForceUpdate);
 		} else if (downloadState === 'DOWNLOADING') {
-			promptDownloading(pendingForceUpdate);
+			showDownloadProgress(getDownloadProgress());
 		} else {
 			promptDownload(pendingForceUpdate);
 		}

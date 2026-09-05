@@ -4,12 +4,14 @@
 			<image class="qrcode-img" src="/static/share.webp" mode="widthFix" @longpress="handleLongPress"></image>
 			<text class="share-tip">长按可保存二维码</text>
 		</view>
+		<UpdateDownloadDialog />
 	</view>
 </template>
 
 <script setup>
 import { onShow } from '@dcloudio/uni-app';
 import { trackPage } from '@/utils/analytics.js';
+import UpdateDownloadDialog from '@/components/UpdateDownloadDialog.vue';
 
 /**
  * 处理二维码长按事件

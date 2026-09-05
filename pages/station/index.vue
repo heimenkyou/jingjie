@@ -51,6 +51,7 @@
 				</view>
 			</view>
 		</view>
+		<UpdateDownloadDialog />
 	</view>
 </template>
 
@@ -67,6 +68,7 @@ import {
 	STATION_TARGETS
 } from '@/utils/station.js';
 import { ANALYTICS_EVENTS, track, trackPage } from '@/utils/analytics.js';
+import UpdateDownloadDialog from '@/components/UpdateDownloadDialog.vue';
 
 const AUTO_OPEN_DELAY = 450;
 const systemInfo = uni.getSystemInfoSync();

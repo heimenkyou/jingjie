@@ -75,6 +75,7 @@
 			<text class="tip-text">{{ brightnessTipText }}</text>
 		</view>
 		<!-- #endif -->
+		<UpdateDownloadDialog />
 
 	</view>
 </template>
@@ -96,6 +97,7 @@ import {
 	toggleSceneBrightness
 } from '@/utils/brightness.js';
 import { ANALYTICS_EVENTS, track, trackPage } from '@/utils/analytics.js';
+import UpdateDownloadDialog from '@/components/UpdateDownloadDialog.vue';
 
 const barcodes = ref([]);
 const showBrightnessTip = ref(false);
