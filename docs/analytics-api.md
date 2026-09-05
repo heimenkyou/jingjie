@@ -2,7 +2,7 @@
 
 ## 概述
 
-客户端通过 `POST https://jingjie.luowb.cn/hooks/jingjie-track` 异步提交事件。接口失败不能影响应用功能，客户端不重试。
+客户端通过 `POST https://jingjie.luowb.cn/api/jingjie-track` 异步提交事件。接口失败不能影响应用功能，客户端不重试。
 
 请求头：
 
@@ -60,6 +60,38 @@ Content-Type: application/json
 ```
 
 客户端不依赖响应体。
+
+## 管理查询接口
+
+以下接口由 `analytics-server` 提供，必须携带请求头：
+
+```http
+Authorization: Bearer <ANALYTICS_ADMIN_TOKEN>
+```
+
+`start` 与 `end` 均为 `YYYY-MM-DD`，最多查询 31 天。
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| `GET` | `/api/admin/analytics/daily?start=2026-09-01&end=2026-09-05&event=page_show` | 按日查询指定事件的 PV、UV，`event` 默认值为 `page_show` |
+| `GET` | `/api/admin/analytics/pages?start=2026-09-01&end=2026-09-05` | 查询范围内各页面的 PV、UV |
+
+日统计响应示例：
+
+```json
+{
+  "event": "page_show",
+  "start": "2026-09-01",
+  "end": "2026-09-05",
+  "days": [
+    {
+      "day": "2026-09-01",
+      "pv": 128,
+      "uv": 73
+    }
+  ]
+}
+```
 
 ## 服务端校验
 

@@ -1,6 +1,6 @@
 import { APP_VERSION_NAME } from '@/utils/appVersion.js';
 
-const TRACK_URL = 'https://jingjie.luowb.cn/hooks/jingjie-track';
+const TRACK_URL = 'https://jingjie.luowb.cn/api/jingjie-track';
 const REQUEST_TIMEOUT = 3000;
 const STORAGE_KEY = 'analyticsInstallId';
 

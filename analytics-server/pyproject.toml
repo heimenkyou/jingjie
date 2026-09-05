@@ -1,0 +1,13 @@
+[project]
+name = "jingjie-analytics-server"
+version = "0.1.0"
+description = "净界应用统计服务"
+requires-python = ">=3.11"
+dependencies = [
+    "flask>=3.1,<4",
+    "gunicorn>=23,<24; sys_platform != 'win32'",
+    "pymysql>=1.1,<2",
+]
+
+[tool.uv]
+package = false
