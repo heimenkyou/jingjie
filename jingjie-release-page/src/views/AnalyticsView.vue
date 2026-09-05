@@ -15,6 +15,7 @@ const analyticsEnd = ref(getDateInputValue(0))
 const analyticsEvent = ref('page_show')
 const analyticsDaily = ref([])
 const analyticsPages = ref([])
+const analyticsVersions = ref([])
 const analyticsLoading = ref(false)
 const analyticsError = ref('')
 
@@ -25,6 +26,9 @@ const analyticsEventOptions = [
   { value: 'station_open_identity_code', label: '打开身份码' },
   { value: 'station_open_home', label: '打开我的驿站' },
   { value: 'feedback_submit', label: '提交反馈' },
+  { value: 'app_error', label: '应用错误' },
+  { value: 'update_download', label: '应用内下载更新' },
+  { value: 'update_install', label: '应用安装更新' },
 ]
 
 const analyticsSummary = computed(() => ({
@@ -34,6 +38,7 @@ const analyticsSummary = computed(() => ({
 }))
 
 const analyticsDailyMax = computed(() => Math.max(...analyticsDaily.value.map((item) => item.pv), 1))
+const analyticsVersionsMax = computed(() => Math.max(...analyticsVersions.value.map((item) => item.devices), 1))
 const formatNumber = (value) => new Intl.NumberFormat('zh-CN').format(value || 0)
 
 /** 请求管理接口并在令牌失效时给出明确提示。 */
@@ -62,12 +67,14 @@ const loadAnalytics = async () => {
 
   try {
     const params = new URLSearchParams({ start: analyticsStart.value, end: analyticsEnd.value })
-    const [daily, pages] = await Promise.all([
+    const [daily, pages, versions] = await Promise.all([
       requestAnalytics(`/admin/analytics/daily?${params}&event=${analyticsEvent.value}`),
       requestAnalytics(`/admin/analytics/pages?${params}`),
+      requestAnalytics(`/admin/analytics/versions?${params}&event=${analyticsEvent.value}`),
     ])
     analyticsDaily.value = Array.isArray(daily.days) ? daily.days : []
     analyticsPages.value = Array.isArray(pages.pages) ? pages.pages : []
+    analyticsVersions.value = Array.isArray(versions.versions) ? versions.versions : []
   } catch (error) {
     console.error('加载统计数据失败:', error)
     analyticsError.value = error.message || '暂时无法获取统计数据'
@@ -95,6 +102,7 @@ const clearAnalyticsToken = () => {
   analyticsTokenDraft.value = ''
   analyticsDaily.value = []
   analyticsPages.value = []
+  analyticsVersions.value = []
   analyticsError.value = ''
 }
 
@@ -127,6 +135,7 @@ onMounted(() => {
         <p v-if="analyticsError" class="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{{ analyticsError }}</p>
         <section class="mt-6 grid gap-4 sm:grid-cols-3"><article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-sm font-medium text-slate-500">区间 PV</p><p class="mt-3 text-3xl font-bold tracking-tight text-slate-900">{{ formatNumber(analyticsSummary.pv) }}</p><p class="mt-2 text-xs text-slate-400">当前事件的总上报次数</p></article><article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-sm font-medium text-slate-500">日 UV 累计</p><p class="mt-3 text-3xl font-bold tracking-tight text-slate-900">{{ formatNumber(analyticsSummary.dailyUv) }}</p><p class="mt-2 text-xs text-slate-400">每日去重安装标识之和</p></article><article class="rounded-2xl border border-[#b9dfe6] bg-[#eef8fa] p-5 shadow-sm"><p class="text-sm font-medium text-[#28798f]">活跃天数</p><p class="mt-3 text-3xl font-bold tracking-tight text-[#1d5969]">{{ formatNumber(analyticsSummary.activeDays) }}</p><p class="mt-2 text-xs text-[#28798f]/70">存在统计事件的日期</p></article></section>
         <section class="mt-6 grid gap-6 xl:grid-cols-[1.25fr_0.75fr]"><article class="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><div class="flex items-start justify-between gap-4"><div><p class="text-sm font-semibold text-slate-900">访问趋势</p><p class="mt-1 text-sm text-slate-500">柱形高度表示当日 PV</p></div><span class="rounded-full bg-[#eef8fa] px-3 py-1 text-xs font-semibold text-[#28798f]">PV / UV</span></div><div v-if="analyticsLoading" class="grid min-h-56 place-items-center text-sm text-slate-500">正在加载数据...</div><div v-else-if="analyticsDaily.length" class="mt-7 flex min-h-56 min-w-max items-end gap-3 overflow-x-auto pb-2 sm:gap-5"><div v-for="item in analyticsDaily" :key="item.day" class="flex w-12 shrink-0 flex-col items-center gap-2"><span class="text-xs font-semibold text-slate-700">{{ formatNumber(item.pv) }}</span><div class="flex h-36 w-full items-end rounded-t-lg bg-[#eef8fa] px-1"><div class="w-full rounded-t-md bg-gradient-to-t from-[#3b91a8] to-[#76c6d2]" :style="{ height: `${Math.max(8, (item.pv / analyticsDailyMax) * 100)}%` }"></div></div><span class="text-[11px] text-slate-400">{{ item.day.slice(5) }}</span><span class="text-[11px] text-[#28798f]">UV {{ item.uv }}</span></div></div><div v-else class="grid min-h-56 place-items-center text-sm text-slate-500">该日期范围暂无统计数据</div></article><article class="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><p class="text-sm font-semibold text-slate-900">页面访问排行</p><p class="mt-1 text-sm text-slate-500">页面展示事件按 PV 排序</p><div v-if="analyticsLoading" class="grid min-h-56 place-items-center text-sm text-slate-500">正在加载数据...</div><div v-else-if="analyticsPages.length" class="mt-5 divide-y divide-slate-100"><div v-for="(item, index) in analyticsPages" :key="item.page" class="flex items-center gap-3 py-4 first:pt-0"><span class="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#eef8fa] text-xs font-bold text-[#28798f]">0{{ index + 1 }}</span><div class="min-w-0 flex-1"><p class="truncate text-sm font-semibold text-slate-700">{{ item.page }}</p><p class="mt-1 text-xs text-slate-400">UV {{ formatNumber(item.uv) }}</p></div><p class="text-lg font-bold text-slate-900">{{ formatNumber(item.pv) }}</p></div></div><div v-else class="grid min-h-56 place-items-center text-sm text-slate-500">暂无页面访问数据</div></article></section>
+        <section class="mt-6 grid gap-6"><article class="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><div class="flex items-start justify-between gap-4"><div><p class="text-sm font-semibold text-slate-900">版本分布</p><p class="mt-1 text-sm text-slate-500">当前事件的活跃设备与上报次数</p></div><span class="rounded-full bg-[#eef8fa] px-3 py-1 text-xs font-semibold text-[#28798f]">设备 / 次数</span></div><div v-if="analyticsLoading" class="grid min-h-40 place-items-center text-sm text-slate-500">正在加载数据...</div><div v-else-if="analyticsVersions.length" class="mt-5 divide-y divide-slate-100"><div v-for="item in analyticsVersions" :key="item.version" class="flex items-center justify-between gap-4 py-3 first:pt-0"><div class="min-w-0 flex-1"><span class="text-sm font-semibold text-slate-800">{{ item.version }}</span><div class="mt-2 h-1.5 w-full rounded-full bg-slate-100"><div class="h-full rounded-full bg-gradient-to-r from-[#3b91a8] to-[#76c6d2]" :style="{ width: `${Math.min(100, (item.devices / analyticsVersionsMax) * 100)}%` }"></div></div></div><div class="shrink-0 text-right"><span class="text-base font-bold text-slate-900">{{ formatNumber(item.devices) }}</span><span class="ml-1 text-xs text-slate-400">设备</span><span class="ml-3 text-base font-semibold text-[#28798f]">{{ formatNumber(item.count) }}</span><span class="ml-1 text-xs text-slate-400">次数</span></div></div></div><div v-else class="grid min-h-40 place-items-center text-sm text-slate-500">该事件在日期范围内暂无版本数据</div></article></section>
       </template>
     </main>
   </div>
