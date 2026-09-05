@@ -1,6 +1,6 @@
 # 净界统计服务
 
-轻量 Flask 服务，将客户端统计事件写入 MySQL 8.0+。服务不保存 IP、设备硬件标识、条码图片、反馈内容或联系方式。
+轻量 Flask 服务，将客户端统计事件、下载次数和用户反馈写入 MySQL 8.0+，并提供受令牌保护的管理查询接口。
 
 ## 初始化
 
@@ -38,6 +38,8 @@ Linux 生产环境：
 ```bash
 uv run gunicorn --workers 1 --threads 1 --bind 127.0.0.1:8000 app:app
 ```
+
+使用 systemd 部署时，将 [`deploy/jingjie-analytics.service`](deploy/jingjie-analytics.service) 复制到 `/etc/systemd/system/`，再执行 `systemctl daemon-reload` 与 `systemctl enable --now jingjie-analytics`。
 
 默认监听 `127.0.0.1:8000`。生产环境保持 `FLASK_DEBUG=false`，通过反向代理将 `https://jingjie.luowb.cn/api/` 转发到本服务。
 

@@ -1,0 +1,18 @@
+[Unit]
+Description=Jingjie Analytics Service
+After=network.target
+
+[Service]
+Type=simple
+User=heimenkyou
+Group=heimenkyou
+WorkingDirectory=/opt/services/jingjie-analytics
+ExecStart=/opt/services/jingjie-analytics/.venv/bin/gunicorn --workers 1 --threads 1 --bind 127.0.0.1:8000 app:app
+Restart=on-failure
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
