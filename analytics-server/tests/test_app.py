@@ -1,6 +1,6 @@
 import unittest
 
-from app import app, parse_date_range, validate_event
+from app import app, parse_date_range, validate_event, validate_feedback
 
 
 VALID_EVENT = {
@@ -46,3 +46,19 @@ class ValidateEventTest(unittest.TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json, {'error': '不支持的事件名'})
+
+    def test_accepts_feedback_with_optional_contact(self):
+        feedback, error = validate_feedback({
+            'content': '希望增加深色模式',
+            'contact': '',
+            'version': 'v2.2.0',
+        })
+
+        self.assertIsNone(error)
+        self.assertEqual(feedback['content'], '希望增加深色模式')
+
+    def test_feedback_route_rejects_invalid_content_without_database_access(self):
+        response = app.test_client().post('/api/feedback', json={'content': '', 'version': 'v2.2.0'})
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json, {'error': '反馈内容长度必须在 1 至 500 字符之间'})

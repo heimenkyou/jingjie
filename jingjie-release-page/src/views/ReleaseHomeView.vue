@@ -2,8 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 
 const directDownloadUrl = 'https://gitee.com/heimenkyou/jingjie/releases/download/v2.2.0/JingJie_v2.2.0.apk'
-const downloadIncApiUrl = 'https://jingjie.luowb.cn/hooks/jingjie-download-inc'
-const downloadQueryApiUrl = 'https://jingjie.luowb.cn/hooks/jingjie-download-query'
+const downloadApiUrl = '/api/downloads'
 const versionName = 'v2.2.0'
 const isAutoDownloading = ref(false)
 const downloadCount = ref('')
@@ -33,10 +32,10 @@ const downloadCountText = computed(() => (downloadCountLoading.value && !downloa
 const loadDownloadCount = async () => {
   downloadCountLoading.value = true
   try {
-    const response = await fetch(downloadQueryApiUrl, { headers: { Accept: 'application/json' } })
+    const response = await fetch(downloadApiUrl, { headers: { Accept: 'application/json' } })
     if (!response.ok) throw new Error(`HTTP ${response.status}`)
     const data = await response.json()
-    downloadCount.value = data?.message ? String(data.message) : ''
+    downloadCount.value = data?.count !== undefined ? String(data.count) : ''
   } catch (error) {
     console.error('获取下载量失败:', error)
   } finally {
@@ -50,7 +49,7 @@ const triggerDownload = async () => {
   hasTriggeredDownload.value = true
 
   try {
-    const response = await fetch(downloadIncApiUrl, { headers: { Accept: 'application/json' } })
+    const response = await fetch(downloadApiUrl, { method: 'POST', headers: { Accept: 'application/json' } })
     if (!response.ok) throw new Error(`HTTP ${response.status}`)
     const data = await response.json()
     downloadCount.value = typeof data?.count !== 'undefined' ? String(data.count) : downloadCount.value

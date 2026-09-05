@@ -255,7 +255,7 @@ const submitFeedback = () => {
 	
 	isSubmittingFeedback.value = true;
 	uni.request({
-		url: 'https://jingjie.luowb.cn/hooks/jingjie-feedback-submit',
+		url: 'https://jingjie.luowb.cn/api/feedback',
 		method: 'POST',
 		header: {
 			'Content-Type': 'application/json'
@@ -266,6 +266,11 @@ const submitFeedback = () => {
 			version: currentVersionName
 		},
 		success: (res) => {
+			if (res.statusCode < 200 || res.statusCode >= 300) {
+				uni.showToast({ title: '提交失败，请重试', icon: 'none' });
+				return;
+			}
+
 			track(ANALYTICS_EVENTS.feedbackSubmit);
 			uni.showToast({ title: '提交成功，感谢您的反馈', icon: 'none' });
 			feedbackForm.value.content = '';
@@ -536,12 +541,12 @@ const openSourceLink = (platform) => {
  */
 const loadDownloadCount = () => {
 	uni.request({
-		url: 'https://webhook.luowb.cn/hooks/jingjie-download-query',
+		url: 'https://jingjie.luowb.cn/api/downloads',
 		method: 'GET',
 		success: (res) => {
 			const data = typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
-			if (data?.message !== undefined) {
-				downloadCount.value = data.message;
+			if (data?.count !== undefined) {
+				downloadCount.value = data.count;
 			}
 		},
 		fail: (err) => {

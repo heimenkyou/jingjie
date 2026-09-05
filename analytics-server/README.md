@@ -49,6 +49,10 @@ uv run gunicorn --workers 1 --threads 1 --bind 127.0.0.1:8000 app:app
 | `POST` | `/api/jingjie-track` | 写入客户端统计事件 |
 | `GET` | `/api/admin/analytics/daily` | 查询按日 PV、UV |
 | `GET` | `/api/admin/analytics/pages` | 查询按页面 PV、UV |
+| `GET` | `/api/downloads` | 查询累计下载次数 |
+| `POST` | `/api/downloads` | 增加下载次数 |
+| `POST` | `/api/feedback` | 提交反馈 |
+| `GET` | `/api/admin/feedback` | 查询最新反馈 |
 
 事件请求格式、字段限制和统计口径见项目根目录的 [`docs/analytics-api.md`](../docs/analytics-api.md)。
 

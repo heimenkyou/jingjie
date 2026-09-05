@@ -61,6 +61,15 @@ Content-Type: application/json
 
 客户端不依赖响应体。
 
+## 下载与反馈接口
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| `GET` | `/api/downloads` | 返回 `{ "count": 132 }` 格式的累计下载次数 |
+| `POST` | `/api/downloads` | 下载跳转前增加累计次数并返回最新数量 |
+| `POST` | `/api/feedback` | 提交 `content`、`contact`、`version` 字段 |
+| `GET` | `/api/admin/feedback` | 查询最多 100 条最新反馈，需管理令牌 |
+
 ## 管理查询接口
 
 以下接口由 `analytics-server` 提供，必须携带请求头：

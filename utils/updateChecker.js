@@ -44,8 +44,8 @@ const shouldSkipSilentCheck = () => {
 // #ifdef APP-PLUS
 const reportDownload = () => {
 	uni.request({
-		url: 'https://webhook.luowb.cn/hooks/jingjie-download-inc',
-		method: 'GET',
+		url: 'https://jingjie.luowb.cn/api/downloads',
+		method: 'POST',
 		fail: (err) => {
 			console.warn('[净界-updateChecker] 下载量上报失败', err);
 		}

@@ -144,6 +144,28 @@ def validate_event(payload: Any) -> tuple[dict[str, Any] | None, str | None]:
     }, None
 
 
+def validate_feedback(payload: Any) -> tuple[dict[str, str] | None, str | None]:
+    """校验反馈内容，避免写入超长或非文本数据。"""
+    if not isinstance(payload, dict):
+        return None, '请求体必须是 JSON 对象'
+
+    content = payload.get('content')
+    contact = payload.get('contact', '')
+    app_version = payload.get('version')
+    if not isinstance(content, str) or not 1 <= len(content.strip()) <= 500:
+        return None, '反馈内容长度必须在 1 至 500 字符之间'
+    if not isinstance(contact, str) or len(contact) > 128:
+        return None, '联系方式格式错误'
+    if not isinstance(app_version, str) or not app_version or len(app_version) > 32:
+        return None, '版本号格式错误'
+
+    return {
+        'content': content.strip(),
+        'contact': contact.strip(),
+        'app_version': app_version,
+    }, None
+
+
 def parse_date_range(start: str | None, end: str | None) -> tuple[date | None, date | None, str | None]:
     """限制查询范围，避免统计查询扫描过多历史数据。"""
     try:
@@ -216,6 +238,55 @@ def create_app() -> Flask:
 
         return '', 204
 
+    @app.get('/api/downloads')
+    def get_download_count():
+        """返回当前累计下载次数。"""
+        try:
+            with get_connection(settings).cursor() as cursor:
+                cursor.execute('SELECT total_downloads FROM download_statistics WHERE id = 1')
+                row = cursor.fetchone()
+        except MySQLError:
+            app.logger.exception('下载量查询失败')
+            return jsonify(error='数据库不可用'), 503
+
+        return jsonify(count=row['total_downloads'] if row else 0)
+
+    @app.post('/api/downloads')
+    def increment_download_count():
+        """记录一次下载请求并返回更新后的累计次数。"""
+        try:
+            with get_connection(settings).cursor() as cursor:
+                cursor.execute('UPDATE download_statistics SET total_downloads = total_downloads + 1 WHERE id = 1')
+                cursor.execute('SELECT total_downloads FROM download_statistics WHERE id = 1')
+                row = cursor.fetchone()
+        except MySQLError:
+            app.logger.exception('下载量写入失败')
+            return jsonify(error='数据库不可用'), 503
+
+        return jsonify(count=row['total_downloads'] if row else 0)
+
+    @app.post('/api/feedback')
+    def submit_feedback():
+        """保存用户主动提交的反馈。"""
+        if not request.is_json:
+            return jsonify(error='请求类型必须是 application/json'), 415
+
+        feedback, error = validate_feedback(request.get_json(silent=True))
+        if error:
+            return jsonify(error=error), 400
+
+        try:
+            with get_connection(settings).cursor() as cursor:
+                cursor.execute(
+                    'INSERT INTO feedback_items (content, contact, app_version) VALUES (%s, %s, %s)',
+                    (feedback['content'], feedback['contact'], feedback['app_version']),
+                )
+        except MySQLError:
+            app.logger.exception('反馈写入失败')
+            return jsonify(error='数据库不可用'), 503
+
+        return '', 204
+
     def require_admin_token():
         """限制统计查询接口，避免访问数据聚合结果。"""
         authorization = request.headers.get('Authorization', '')
@@ -223,6 +294,38 @@ def create_app() -> Flask:
         if not settings.admin_token or not compare_digest(authorization, expected):
             return jsonify(error='未授权'), 401
         return None
+
+    @app.get('/api/admin/feedback')
+    def list_feedback():
+        """返回最新反馈，仅供管理页面查看。"""
+        unauthorized = require_admin_token()
+        if unauthorized:
+            return unauthorized
+
+        try:
+            with get_connection(settings).cursor() as cursor:
+                cursor.execute(
+                    '''
+                    SELECT content, contact, app_version, created_at
+                    FROM feedback_items
+                    ORDER BY id DESC
+                    LIMIT 100
+                    '''
+                )
+                rows = cursor.fetchall()
+        except MySQLError:
+            app.logger.exception('反馈查询失败')
+            return jsonify(error='数据库不可用'), 503
+
+        return jsonify([
+            {
+                'content': row['content'],
+                'contact': row['contact'],
+                'version': row['app_version'],
+                'timestamp': row['created_at'].strftime('%Y-%m-%d %H:%M:%S'),
+            }
+            for row in rows
+        ])
 
     @app.get('/api/admin/analytics/daily')
     def daily_analytics():

@@ -22,3 +22,23 @@ CREATE TABLE IF NOT EXISTS analytics_events (
   KEY idx_events_created_install (created_at, install_id),
   KEY idx_events_created_page (created_at, page_path)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='净界客户端统计事件明细';
+
+CREATE TABLE IF NOT EXISTS feedback_items (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '反馈主键',
+  content VARCHAR(500) NOT NULL COMMENT '用户反馈内容',
+  contact VARCHAR(128) NOT NULL DEFAULT '' COMMENT '用户主动填写的联系方式',
+  app_version VARCHAR(32) NOT NULL COMMENT '提交反馈时的应用版本号',
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '服务端接收时间',
+  PRIMARY KEY (id),
+  KEY idx_feedback_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='净界用户反馈明细';
+
+CREATE TABLE IF NOT EXISTS download_statistics (
+  id TINYINT UNSIGNED NOT NULL COMMENT '固定为 1 的单行标识',
+  total_downloads BIGINT UNSIGNED NOT NULL COMMENT '累计下载次数',
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '最近一次下载记录时间',
+  PRIMARY KEY (id),
+  CONSTRAINT chk_download_statistics_id CHECK (id = 1)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='净界累计下载统计';
+
+INSERT IGNORE INTO download_statistics (id, total_downloads) VALUES (1, 132);

@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 
-const analyticsApiBaseUrl = 'https://jingjie.luowb.cn/api'
+const analyticsApiBaseUrl = '/api'
 const getDateInputValue = (offset) => {
   const date = new Date()
   date.setDate(date.getDate() + offset)
