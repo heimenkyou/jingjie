@@ -29,4 +29,5 @@ $env:HBUILDERX_CLI_PATH = $cfg.hbuilderxCli
 	--android.certalias $cfg.certAlias `
 	--android.certfile $cfg.certFile `
 	--android.certpassword $cfg.certPassword `
-	--android.storepassword $cfg.storePassword
+	--android.storepassword $cfg.storePassword `
+	--safemode true
