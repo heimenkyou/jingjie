@@ -1,6 +1,6 @@
 <#
-用法：在项目根目录执行  .\pack.ps1，即可发起 Android 云打包。
-证书与密码从 pack.local.json 读取（该文件已加入 .gitignore，不进仓库）。
+用法：在项目根目录执行  .\scripts\pack.ps1，即可发起 Android 云打包。
+证书与密码从同目录 pack.local.json 读取（该文件已加入 .gitignore，不进仓库）。
 #>
 param(
 	[string]$ConfigFile = "pack.local.json"
@@ -8,7 +8,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$cfgPath = Join-Path (Get-Location) $ConfigFile
+$cfgPath = Join-Path $PSScriptRoot $ConfigFile
 if (-not (Test-Path $cfgPath)) {
 	throw "未找到打包配置：$cfgPath"
 }
