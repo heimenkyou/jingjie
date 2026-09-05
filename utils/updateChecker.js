@@ -1,6 +1,7 @@
 import { APP_VERSION_CODE as CURRENT_VERSION_CODE, APP_VERSION_NAME as CURRENT_VERSION_NAME } from '@/utils/appVersion.js';
 import { ref } from 'vue';
 import { ANALYTICS_EVENTS, track } from '@/utils/analytics.js';
+import { showModal, showToast } from '@/utils/feedback.js';
 
 const UPDATE_URL = 'https://jingjie.luowb.cn/update.json';
 const OFFICIAL_SITE_URL = 'https://jingjie.luowb.cn';
@@ -144,8 +145,7 @@ const installApk = (filePath) => {
 		},
 		(err) => {
 			console.error('[净界-updateChecker] 安装失败', err);
-			uni.showToast({ title: `安装失败，文件可能已损坏，请重新下载`, icon: 'none', duration: 3000 });
-			
+			showToast({ title: `安装失败，文件可能已损坏，请重新下载`, icon: 'none', duration: 3000 });
 			// 安装失败，清空相关状态和缓存，使其可以重新下载
 			downloadState = 'IDLE';
 			localFilePath = null;
@@ -337,15 +337,13 @@ export const checkForUpdate = async ({ silent = true, force = false, test = fals
 
 			// #ifdef H5
 			if (!silent || data.force) {
-				uni.showModal({
+				const result = await showModal({
 					title: `发现新版本 ${data.versionName}`,
 					content: [data.date, data.log].filter(Boolean).join('\n\n'),
 					confirmText: '去下载',
-					showCancel: !data.force,
-					success: (res) => {
-						if (res.confirm) window.open(data.url, '_blank');
-					}
+					showCancel: !data.force
 				});
+				if (result.confirm) window.open(data.url, '_blank');
 			}
 			// #endif
 
@@ -353,7 +351,7 @@ export const checkForUpdate = async ({ silent = true, force = false, test = fals
 		}
 
 		if (!silent) {
-			uni.showToast({
+			showToast({
 				title: `已是最新版本 ${CURRENT_VERSION_NAME}`,
 				icon: 'none'
 			});
@@ -362,7 +360,7 @@ export const checkForUpdate = async ({ silent = true, force = false, test = fals
 		return data;
 	} catch (error) {
 		if (!silent) {
-			uni.showToast({
+			showToast({
 				title: '检查失败，请稍后重试',
 				icon: 'none'
 			});
@@ -386,7 +384,7 @@ export const testUpdateDownload = async () => {
 	await checkForUpdate({ silent: false, force: true, test: true });
 };
 
-export const showPendingForceUpdate = () => {
+export const showPendingForceUpdate = async () => {
 	if (pendingForceUpdate) {
 		// #ifdef APP-PLUS
 		if (downloadState === 'SUCCESS') {
@@ -399,15 +397,13 @@ export const showPendingForceUpdate = () => {
 		// #endif
 
 		// #ifdef H5
-		uni.showModal({
+		const result = await showModal({
 			title: `发现新版本 ${pendingForceUpdate.versionName}`,
 			content: [pendingForceUpdate.date, pendingForceUpdate.log].filter(Boolean).join('\n\n'),
 			confirmText: '去下载',
-			showCancel: false,
-			success: (res) => {
-				if (res.confirm) window.open(pendingForceUpdate.url, '_blank');
-			}
+			showCancel: false
 		});
+		if (result.confirm) window.open(pendingForceUpdate.url, '_blank');
 		// #endif
 	}
 };

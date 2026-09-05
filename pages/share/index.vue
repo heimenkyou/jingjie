@@ -5,24 +5,26 @@
 			<text class="share-tip">长按可保存二维码</text>
 		</view>
 		<UpdateDownloadDialog />
+		<AppFeedback />
 	</view>
 </template>
 
 <script setup>
 import { onShow } from '@dcloudio/uni-app';
 import { trackPage } from '@/utils/analytics.js';
+import { showActionSheet, showToast } from '@/utils/feedback.js';
 import UpdateDownloadDialog from '@/components/UpdateDownloadDialog.vue';
+import AppFeedback from '@/components/AppFeedback.vue';
 
 /**
  * 处理二维码长按事件
  */
 const handleLongPress = () => {
-	uni.showActionSheet({
-		itemList: ['保存图片到相册'],
-		success: (res) => {
-			if (res.tapIndex === 0) {
-				saveImage();
-			}
+	showActionSheet({
+		itemList: ['保存图片到相册']
+	}).then((selected) => {
+		if (selected === 0) {
+			saveImage();
 		}
 	});
 };
@@ -34,14 +36,14 @@ const saveImage = () => {
 	uni.saveImageToPhotosAlbum({
 		filePath: '/static/share.webp',
 		success: () => {
-			uni.showToast({
+			showToast({
 				title: '已保存到相册',
 				icon: 'success'
 			});
 		},
 		fail: (err) => {
 			console.error('保存失败', err);
-			uni.showToast({
+			showToast({
 				title: '保存失败或已取消',
 				icon: 'none'
 			});

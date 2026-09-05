@@ -76,6 +76,8 @@
 		</view>
 		<!-- #endif -->
 		<UpdateDownloadDialog />
+		<AppFeedback />
+
 
 	</view>
 </template>
@@ -97,7 +99,9 @@ import {
 	toggleSceneBrightness
 } from '@/utils/brightness.js';
 import { ANALYTICS_EVENTS, track, trackPage } from '@/utils/analytics.js';
+import { showActionSheet, showModal, showToast } from '@/utils/feedback.js';
 import UpdateDownloadDialog from '@/components/UpdateDownloadDialog.vue';
+import AppFeedback from '@/components/AppFeedback.vue';
 
 const barcodes = ref([]);
 const showBrightnessTip = ref(false);
@@ -182,29 +186,20 @@ const syncBrightnessBoostedState = () => {
  * 首次手动点亮前给用户一个温和提醒。
  * @returns {Promise<boolean>}
  */
-const confirmManualBrightnessToggle = () =>
-	new Promise((resolve) => {
-		if (!shouldShowManualBrightnessHint()) {
-			resolve(true);
-			return;
-		}
+const confirmManualBrightnessToggle = async () => {
+	if (!shouldShowManualBrightnessHint()) return true;
 
-		uni.showModal({
-			title: '点亮屏幕',
-			content: '点击后会临时拉满屏幕亮度，方便扫码。您也可以在设置里开启“条码页自动点亮”。',
-			confirmText: '继续',
-			success: (res) => {
-				if (res.confirm) {
-					markManualBrightnessHintShown();
-					resolve(true);
-					return;
-				}
-
-				resolve(false);
-			},
-			fail: () => resolve(false)
-		});
+	const res = await showModal({
+		title: '点亮屏幕',
+		content: '点击后会临时拉满屏幕亮度，方便扫码。您也可以在设置里开启“条码页自动点亮”。',
+		confirmText: '继续'
 	});
+	if (res.confirm) {
+		markManualBrightnessHintShown();
+		return true;
+	}
+	return false;
+};
 
 /**
  * 处理右下角亮度按钮点击，支持一键拉满和恢复。
@@ -267,7 +262,7 @@ const addBarcode = () => {
 				const nextIndex = Math.max(0, barcodes.value.length - 1);
 				persistBarcodes(nextIndex);
 				track(ANALYTICS_EVENTS.barcodeAdd);
-				uni.showToast({
+				showToast({
 					title: '添加成功，点击名称可编辑或删除',
 					icon: 'none',
 					duration: 2200
@@ -282,7 +277,7 @@ const addBarcode = () => {
 						fileEntry.copyTo(dirEntry, savedFileName, (newEntry) => {
 							finishAdd(newEntry.toLocalURL());
 						}, () => {
-							uni.showToast({
+							showToast({
 								title: '保存失败',
 								icon: 'error'
 							});
@@ -307,7 +302,7 @@ const setDefaultBarcode = (barcodeId) => {
 	uni.setStorageSync('defaultBarcodeId', barcodeId);
 	loadBarcodes();
 	currentIndex.value = 0;
-	uni.showToast({
+	showToast({
 		title: '已设为默认',
 		icon: 'success',
 		duration: 1500
@@ -319,29 +314,28 @@ const setDefaultBarcode = (barcodeId) => {
  * @param {number} index 条码索引
  */
 const deleteBarcode = (index) => {
-	uni.showModal({
+	showModal({
 		title: '确认删除',
-		content: '确定要删除这个条码吗？',
-		success: (res) => {
-			if (!res.confirm) return;
+		content: '确定要删除这个条码吗？'
+	}).then((res) => {
+		if (!res.confirm) return;
 
-			const deletedId = barcodes.value[index]?.id;
-			barcodes.value.splice(index, 1);
-			const defaultBarcodeId = uni.getStorageSync('defaultBarcodeId') || '';
-			if (deletedId === defaultBarcodeId) {
-				if (barcodes.value.length > 0) {
-					uni.setStorageSync('defaultBarcodeId', barcodes.value[0].id);
-				} else {
-					uni.removeStorageSync('defaultBarcodeId');
-				}
+		const deletedId = barcodes.value[index]?.id;
+		barcodes.value.splice(index, 1);
+		const defaultBarcodeId = uni.getStorageSync('defaultBarcodeId') || '';
+		if (deletedId === defaultBarcodeId) {
+			if (barcodes.value.length > 0) {
+				uni.setStorageSync('defaultBarcodeId', barcodes.value[0].id);
+			} else {
+				uni.removeStorageSync('defaultBarcodeId');
 			}
-
-			persistBarcodes(Math.max(0, Math.min(index, barcodes.value.length - 1)));
-			uni.showToast({
-				title: '删除成功',
-				icon: 'success'
-			});
 		}
+
+		persistBarcodes(Math.max(0, Math.min(index, barcodes.value.length - 1)));
+		showToast({
+			title: '删除成功',
+			icon: 'success'
+		});
 	});
 };
 
@@ -353,20 +347,19 @@ const renameBarcode = (index) => {
 	const currentBarcode = barcodes.value[index];
 	if (!currentBarcode) return;
 
-	uni.showModal({
+	showModal({
 		title: '修改名称',
 		content: '请输入新名称',
 		editable: true,
-		placeholderText: currentBarcode.name || `条码 ${index + 1}`,
-		success: (res) => {
-			if (!res.confirm || !res.content) return;
-			currentBarcode.name = res.content.trim();
-			persistBarcodes(index);
-			uni.showToast({
-				title: '修改成功',
-				icon: 'success'
-			});
-		}
+		placeholderText: currentBarcode.name || `条码 ${index + 1}`
+	}).then((res) => {
+		if (!res.confirm || !res.content) return;
+		currentBarcode.name = res.content.trim();
+		persistBarcodes(index);
+		showToast({
+			title: '修改成功',
+			icon: 'success'
+		});
 	});
 };
 
@@ -384,10 +377,10 @@ const handleBarcodeActions = (item, index) => {
 		actions.unshift('设为默认');
 	}
 
-	uni.showActionSheet({
-		itemList: actions,
-		success: (res) => {
-			const action = actions[res.tapIndex];
+	showActionSheet({
+		itemList: actions
+	}).then((selected) => {
+			const action = actions[selected];
 			if (action === '设为默认') {
 				setDefaultBarcode(item.id);
 				return;
@@ -399,8 +392,7 @@ const handleBarcodeActions = (item, index) => {
 			if (action === '删除') {
 				deleteBarcode(index);
 			}
-		}
-	});
+		});
 };
 
 onShow(() => {

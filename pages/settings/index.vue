@@ -197,6 +197,8 @@
 			</view>
 		</view>
 		<UpdateDownloadDialog />
+		<AppFeedback />
+
 	</view>
 </template>
 
@@ -211,7 +213,9 @@ import { checkForUpdate, testUpdateDownload } from '@/utils/updateChecker.js';
 import { BRIGHTNESS_SCENES, getBrightnessPreferences, setSceneAutoBrightnessEnabled } from '@/utils/brightness.js';
 import { getStationAutoOpenTarget, setStationAutoOpenTarget } from '@/utils/station.js';
 import { ANALYTICS_EVENTS, track, trackPage } from '@/utils/analytics.js';
+import { showActionSheet, showModal, showToast } from '@/utils/feedback.js';
 import UpdateDownloadDialog from '@/components/UpdateDownloadDialog.vue';
+import AppFeedback from '@/components/AppFeedback.vue';
 
 const DEFAULT_STARTUP_TAB = 'barcode';
 const startupTab = ref(DEFAULT_STARTUP_TAB);
@@ -259,7 +263,7 @@ const closeFeedbackModal = () => {
 
 const submitFeedback = () => {
 	if (!feedbackForm.value.content.trim()) {
-		uni.showToast({ title: '请输入反馈内容', icon: 'none' });
+		showToast({ title: '请输入反馈内容', icon: 'none' });
 		return;
 	}
 	
@@ -277,18 +281,18 @@ const submitFeedback = () => {
 		},
 		success: (res) => {
 			if (res.statusCode < 200 || res.statusCode >= 300) {
-				uni.showToast({ title: '提交失败，请重试', icon: 'none' });
+				showToast({ title: '提交失败，请重试', icon: 'none' });
 				return;
 			}
 
 			track(ANALYTICS_EVENTS.feedbackSubmit);
-			uni.showToast({ title: '提交成功，感谢您的反馈', icon: 'none' });
+			showToast({ title: '提交成功，感谢您的反馈', icon: 'none' });
 			feedbackForm.value.content = '';
 			feedbackForm.value.contact = '';
 			showFeedbackModal.value = false;
 		},
 		fail: () => {
-			uni.showToast({ title: '提交失败，请重试', icon: 'none' });
+			showToast({ title: '提交失败，请重试', icon: 'none' });
 		},
 		complete: () => {
 			isSubmittingFeedback.value = false;
@@ -353,7 +357,7 @@ const resetDefaultBarcodePreference = () => {
 const setStartupTab = (value) => {
 	startupTab.value = value;
 	uni.setStorageSync('startupTab', value);
-	uni.showToast({
+	showToast({
 		title: '启动项已更新',
 		icon: 'success',
 		duration: 1200
@@ -364,13 +368,12 @@ const setStartupTab = (value) => {
  * 使用底部动作面板选择启动首选项。
  */
 const chooseStartupTab = () => {
-	uni.showActionSheet({
-		itemList: startupOptions.map(item => item.label),
-		success: (res) => {
-			const target = startupOptions[res.tapIndex];
-			if (target) {
-				setStartupTab(target.value);
-			}
+	showActionSheet({
+		itemList: startupOptions.map(item => item.label)
+	}).then((index) => {
+		const target = startupOptions[index];
+		if (target) {
+			setStartupTab(target.value);
 		}
 	});
 };
@@ -379,21 +382,20 @@ const chooseStartupTab = () => {
  * 将启动项和默认展示项恢复为推荐初始值。
  */
 const resetDefaultPreferences = () => {
-	uni.showModal({
+	showModal({
 		title: '恢复默认设置',
-		content: '是否恢复为默认设置？',
-		success: (res) => {
-			if (!res.confirm) return;
+		content: '是否恢复为默认设置？'
+	}).then((res) => {
+		if (!res.confirm) return;
 
-			startupTab.value = DEFAULT_STARTUP_TAB;
-			uni.setStorageSync('startupTab', DEFAULT_STARTUP_TAB);
-			resetDefaultBarcodePreference();
-			uni.showToast({
-				title: '已恢复默认设置',
-				icon: 'success',
-				duration: 1500
-			});
-		}
+		startupTab.value = DEFAULT_STARTUP_TAB;
+		uni.setStorageSync('startupTab', DEFAULT_STARTUP_TAB);
+		resetDefaultBarcodePreference();
+		showToast({
+			title: '已恢复默认设置',
+			icon: 'success',
+			duration: 1500
+		});
 	});
 };
 
@@ -402,27 +404,26 @@ const resetDefaultPreferences = () => {
  */
 const chooseDefaultBarcode = () => {
 	if (!barcodes.value.length) {
-		uni.showToast({
+		showToast({
 			title: '请先添加条码',
 			icon: 'none'
 		});
 		return;
 	}
 
-	uni.showActionSheet({
-		itemList: barcodes.value.map((item, index) => item.name || `条码 ${index + 1}`),
-		success: (res) => {
-			const target = barcodes.value[res.tapIndex];
-			if (!target) return;
+	showActionSheet({
+		itemList: barcodes.value.map((item, index) => item.name || `条码 ${index + 1}`)
+	}).then((index) => {
+		const target = barcodes.value[index];
+		if (!target) return;
 
-			defaultBarcodeId.value = target.id;
-			uni.setStorageSync('defaultBarcodeId', target.id);
-			uni.showToast({
-				title: '默认条码已更新',
-				icon: 'success',
-				duration: 1200
-			});
-		}
+		defaultBarcodeId.value = target.id;
+		uni.setStorageSync('defaultBarcodeId', target.id);
+		showToast({
+			title: '默认条码已更新',
+			icon: 'success',
+			duration: 1200
+		});
 	});
 };
 
@@ -457,7 +458,7 @@ const copyWechat = () => {
 	uni.setClipboardData({
 		data: wechatId,
 		success: () => {
-			uni.showToast({
+			showToast({
 				title: '微信号已复制',
 				icon: 'success'
 			});
@@ -482,7 +483,7 @@ const goToShare = () => {
  */
 const updateAutoBrightnessPreference = (scene, enabled, title) => {
 	setSceneAutoBrightnessEnabled(scene, enabled);
-	uni.showToast({
+	showToast({
 		title,
 		icon: 'none',
 		duration: 1400
@@ -527,7 +528,7 @@ const handleCheckUpdate = () => {
  * 长按检查更新入口时下载当前安装包，用于验证下载进度。
  */
 const handleTestUpdateDownload = () => {
-	uni.showToast({ title: '开始测试更新下载', icon: 'none' });
+	showToast({ title: '开始测试更新下载', icon: 'none' });
 	testUpdateDownload();
 };
 

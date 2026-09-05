@@ -52,6 +52,7 @@
 			</view>
 		</view>
 		<UpdateDownloadDialog />
+		<AppFeedback />
 	</view>
 </template>
 
@@ -68,7 +69,9 @@ import {
 	STATION_TARGETS
 } from '@/utils/station.js';
 import { ANALYTICS_EVENTS, track, trackPage } from '@/utils/analytics.js';
+import { showActionSheet, showModal, showToast } from '@/utils/feedback.js';
 import UpdateDownloadDialog from '@/components/UpdateDownloadDialog.vue';
+import AppFeedback from '@/components/AppFeedback.vue';
 
 const AUTO_OPEN_DELAY = 450;
 const systemInfo = uni.getSystemInfoSync();
@@ -128,7 +131,7 @@ const openTarget = (key) => {
 
 		// #ifdef APP-PLUS
 		plus.runtime.openURL(target.url, () => {
-			uni.showToast({ title: '未能打开淘宝，请确认已安装', icon: 'none' });
+			showToast({ title: '未能打开淘宝，请确认已安装', icon: 'none' });
 		});
 		// #endif
 
@@ -159,15 +162,15 @@ const toggleAutoOpen = (key) => {
  * 选择并请求创建桌面快捷方式。
  */
 const addStationShortcut = () => {
-	uni.showActionSheet({
-		itemList: stationTargets.map(target => target.title),
-		success: (event) => {
-			const target = stationTargets[event.tapIndex];
+	showActionSheet({
+		itemList: stationTargets.map(target => target.title)
+	}).then((selected) => {
+			const target = stationTargets[selected];
 			if (!target) return;
 
 			const result = requestStationShortcut(target.key);
 			if (result.success) {
-				uni.showModal({
+				showModal({
 					title: result.updated ? '快捷方式已更新' : '快捷方式已创建',
 					content: result.updated
 						? '桌面图标和跳转目标已更新。'
@@ -184,9 +187,8 @@ const addStationShortcut = () => {
 				launcher: '当前桌面不支持添加快捷方式',
 				failed: '创建快捷方式失败，请查看运行日志'
 			};
-			uni.showToast({ title: messages[result.reason] || messages.failed, icon: 'none' });
-		}
-	});
+			showToast({ title: messages[result.reason] || messages.failed, icon: 'none' });
+		});
 };
 
 onLoad(() => {
