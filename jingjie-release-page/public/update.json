@@ -1,0 +1,9 @@
+{
+  "versionName": "v2.2.0",
+  "versionCode": 212,
+  "title": "v2.2.0 - 驿站体验升级",
+  "log": "✨ 驿站全新重构\n* 身份码和我的驿站直接跳转淘宝\n* 支持自动跳转\n* 支持添加桌面快捷方式",
+  "url": "https://gitee.com/heimenkyou/jingjie/releases/download/v2.1.2/JingJie_v2.2.0.apk",
+  "date": "2026-09-05",
+  "force": true
+}

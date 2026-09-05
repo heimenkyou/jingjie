@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>净界 JSON 工具</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        background: #f8fafc;
+        color: #1e293b;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at top, rgba(45, 212, 191, 0.12), transparent 32%),
+          linear-gradient(180deg, #f8fcfb 0%, #eff7f4 38%, #f8fafc 100%);
+      }
+
+      .page {
+        width: min(1120px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 32px 0 48px;
+      }
+
+      .hero {
+        margin-bottom: 24px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      .hero p {
+        margin-top: 8px;
+        color: #475569;
+        line-height: 1.7;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 20px;
+      }
+
+      .panel {
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+      }
+
+      .panel-head {
+        padding: 18px 20px 12px;
+        border-bottom: 1px solid #e2e8f0;
+      }
+
+      .panel-head p {
+        margin-top: 6px;
+        font-size: 14px;
+        color: #64748b;
+        line-height: 1.6;
+      }
+
+      .panel-body {
+        padding: 18px 20px 20px;
+      }
+
+      .stack {
+        display: grid;
+        gap: 14px;
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .field {
+        display: grid;
+        gap: 6px;
+      }
+
+      label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #334155;
+      }
+
+      input,
+      textarea,
+      select {
+        width: 100%;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        background: #fff;
+        color: #0f172a;
+        padding: 10px 12px;
+        font: inherit;
+      }
+
+      textarea {
+        min-height: 110px;
+        resize: vertical;
+        line-height: 1.6;
+      }
+
+      input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        margin: 0;
+      }
+
+      .checkbox {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding-top: 28px;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      button {
+        border: 1px solid #cbd5e1;
+        background: #fff;
+        color: #0f172a;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      button.primary {
+        background: #0f172a;
+        border-color: #0f172a;
+        color: #fff;
+      }
+
+      button.ghost {
+        background: transparent;
+      }
+
+      .notice-item {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 14px;
+        background: #fff;
+      }
+
+      .notice-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .notice-head strong {
+        font-size: 14px;
+      }
+
+      .output {
+        min-height: 320px;
+        font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+        font-size: 13px;
+        line-height: 1.6;
+        white-space: pre;
+      }
+
+      .hint {
+        font-size: 12px;
+        color: #64748b;
+        line-height: 1.6;
+      }
+
+      .mini {
+        font-size: 12px;
+        color: #64748b;
+        line-height: 1.5;
+      }
+
+      .section-gap {
+        margin-top: 20px;
+      }
+
+      @media (max-width: 900px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .grid-2 {
+          grid-template-columns: 1fr;
+        }
+
+        .checkbox {
+          padding-top: 0;
+        }
+
+        .page {
+          width: min(100% - 24px, 1120px);
+          padding-top: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <section class="hero">
+        <h1>净界 JSON 生成工具</h1>
+        <p>开发自用。填写表单后实时生成 `update.json` 和 `notices.json`，支持复制和下载。</p>
+      </section>
+
+      <div class="layout">
+        <div class="stack">
+          <section class="panel">
+            <div class="panel-head">
+              <h2>update.json</h2>
+              <p>版本信息、更新标题、更新日志和下载链接。</p>
+            </div>
+            <div class="panel-body stack">
+              <div class="grid-2">
+                <div class="field">
+                  <label for="updateVersionName">versionName</label>
+                  <input id="updateVersionName" />
+                </div>
+                <div class="field">
+                  <label for="updateVersionCode">versionCode</label>
+                  <input id="updateVersionCode" type="number" />
+                </div>
+              </div>
+              <div class="field">
+                <label for="updateTitle">title</label>
+                <input id="updateTitle" />
+              </div>
+              <div class="field">
+                <label for="updateLog">log</label>
+                <textarea id="updateLog"></textarea>
+              </div>
+              <div class="field">
+                <label for="updateUrl">url</label>
+                <input id="updateUrl" />
+              </div>
+              <div class="grid-2">
+                <div class="field">
+                  <label for="updateDate">date</label>
+                  <input id="updateDate" />
+                </div>
+                <label class="checkbox">
+                  <input id="updateForce" type="checkbox" />
+                  <span>force</span>
+                </label>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2>notices.json</h2>
+              <p>全局公告开关、轮询时间和单条公告列表。</p>
+            </div>
+            <div class="panel-body stack">
+              <div class="grid-2">
+                <label class="checkbox">
+                  <input id="noticeGlobalEnable" type="checkbox" />
+                  <span>globalEnable</span>
+                </label>
+                <div class="field">
+                  <label for="noticePollInterval">pollInterval（秒）</label>
+                  <input id="noticePollInterval" type="number" />
+                </div>
+              </div>
+
+              <div class="toolbar">
+                <button id="addNoticeButton" class="primary" type="button">新增公告</button>
+              </div>
+
+              <div id="noticeList" class="stack"></div>
+            </div>
+          </section>
+        </div>
+
+        <div class="stack">
+          <section class="panel">
+            <div class="panel-head">
+              <h2>输出</h2>
+              <p>复制到服务器，或直接下载成文件。</p>
+            </div>
+            <div class="panel-body stack">
+              <div>
+                <div class="toolbar">
+                  <button id="copyUpdateButton" class="primary" type="button">复制 update.json</button>
+                  <button id="downloadUpdateButton" class="ghost" type="button">下载 update.json</button>
+                </div>
+                <textarea id="updateOutput" class="output section-gap" readonly></textarea>
+              </div>
+
+              <div>
+                <div class="toolbar">
+                  <button id="copyNoticesButton" class="primary" type="button">复制 notices.json</button>
+                  <button id="downloadNoticesButton" class="ghost" type="button">下载 notices.json</button>
+                </div>
+                <textarea id="noticesOutput" class="output section-gap" readonly></textarea>
+              </div>
+
+              <p class="hint">
+                `expireAt` 使用 13 位毫秒时间戳。`allowDismiss` 为 `false` 时，客户端应强制展示该公告。
+              </p>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <template id="noticeItemTemplate">
+      <div class="notice-item">
+        <div class="notice-head">
+          <strong>公告项</strong>
+          <button type="button" data-action="remove">删除</button>
+        </div>
+        <div class="stack">
+          <div class="grid-2">
+            <div class="field">
+              <label>id</label>
+              <input data-field="id" />
+            </div>
+            <div class="field">
+              <label>level</label>
+              <select data-field="level">
+                <option value="info">info</option>
+                <option value="warn">warn</option>
+                <option value="error">error</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label>content</label>
+            <textarea data-field="content"></textarea>
+          </div>
+          <div class="field">
+            <label>link</label>
+            <input data-field="link" />
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label>到期时间</label>
+              <input data-field="expireAtDisplay" type="datetime-local" />
+              <div class="mini">会自动换算成 13 位毫秒时间戳</div>
+            </div>
+            <div class="field">
+              <label>expireAt</label>
+              <input data-field="expireAt" type="text" readonly />
+            </div>
+            <label class="checkbox">
+              <input data-field="allowDismiss" type="checkbox" />
+              <span>allowDismiss</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <script>
+      const $ = (selector) => document.querySelector(selector)
+      const noticeList = $('#noticeList')
+      const noticeTemplate = $('#noticeItemTemplate')
+
+      const updateState = {
+        versionName: 'v2.0.1',
+        versionCode: 201,
+        title: 'v2.0.1 - 修驿站的bug(建议升级)',
+        log: '🐛 体验优化与修复\n\n✨ 新增\n- 新增全局公告栏。\n- 现在可以在驿站首页查快递了。\n\n🔧 修复与优化\n- 修复驿站首页搜索栏及部分菜单按钮点击无效。\n- 修复页面串扰。\n- 优化系统物理返回键逻辑。\n- 增加跨版本缓存自动清理机制，修复覆盖更新可能导致的界面异常遮挡。',
+        url: 'https://jingjie.luowb.cn/?action=autodownload',
+        date: '2026-04-28',
+        force: false,
+      }
+
+      const noticesState = {
+        globalEnable: true,
+        pollInterval: 7200,
+        items: [
+          {
+            id: 'notice_260428_1',
+            level: 'info',
+            content: '🎉 驿站页秒切体验已上线，欢迎使用！',
+            link: '',
+            expireAt: 1777564800000,
+            allowDismiss: true,
+          },
+        ],
+      }
+
+      const updateInputs = {
+        versionName: $('#updateVersionName'),
+        versionCode: $('#updateVersionCode'),
+        title: $('#updateTitle'),
+        log: $('#updateLog'),
+        url: $('#updateUrl'),
+        date: $('#updateDate'),
+        force: $('#updateForce'),
+      }
+
+      function timestampToDatetimeLocal(timestamp) {
+        if (!timestamp) return ''
+        const date = new Date(Number(timestamp))
+        if (Number.isNaN(date.getTime())) return ''
+
+        const pad = (value) => String(value).padStart(2, '0')
+
+        return [
+          date.getFullYear(),
+          '-',
+          pad(date.getMonth() + 1),
+          '-',
+          pad(date.getDate()),
+          'T',
+          pad(date.getHours()),
+          ':',
+          pad(date.getMinutes()),
+        ].join('')
+      }
+
+      function datetimeLocalToTimestamp(value) {
+        if (!value) return 0
+        const timestamp = new Date(value).getTime()
+        return Number.isNaN(timestamp) ? 0 : timestamp
+      }
+
+      function syncUpdateForm() {
+        updateInputs.versionName.value = updateState.versionName
+        updateInputs.versionCode.value = updateState.versionCode
+        updateInputs.title.value = updateState.title
+        updateInputs.log.value = updateState.log
+        updateInputs.url.value = updateState.url
+        updateInputs.date.value = updateState.date
+        updateInputs.force.checked = updateState.force
+      }
+
+      function bindUpdateInputs() {
+        updateInputs.versionName.addEventListener('input', (event) => {
+          updateState.versionName = event.target.value
+          renderOutputs()
+        })
+        updateInputs.versionCode.addEventListener('input', (event) => {
+          updateState.versionCode = Number(event.target.value) || 0
+          renderOutputs()
+        })
+        updateInputs.title.addEventListener('input', (event) => {
+          updateState.title = event.target.value
+          renderOutputs()
+        })
+        updateInputs.log.addEventListener('input', (event) => {
+          updateState.log = event.target.value
+          renderOutputs()
+        })
+        updateInputs.url.addEventListener('input', (event) => {
+          updateState.url = event.target.value
+          renderOutputs()
+        })
+        updateInputs.date.addEventListener('input', (event) => {
+          updateState.date = event.target.value
+          renderOutputs()
+        })
+        updateInputs.force.addEventListener('change', (event) => {
+          updateState.force = event.target.checked
+          renderOutputs()
+        })
+      }
+
+      function createNoticeItem(data) {
+        const fragment = noticeTemplate.content.cloneNode(true)
+        const element = fragment.querySelector('.notice-item')
+        const fields = {
+          id: element.querySelector('[data-field="id"]'),
+          level: element.querySelector('[data-field="level"]'),
+          content: element.querySelector('[data-field="content"]'),
+          link: element.querySelector('[data-field="link"]'),
+          expireAtDisplay: element.querySelector('[data-field="expireAtDisplay"]'),
+          expireAt: element.querySelector('[data-field="expireAt"]'),
+          allowDismiss: element.querySelector('[data-field="allowDismiss"]'),
+        }
+
+        fields.id.value = data.id
+        fields.level.value = data.level
+        fields.content.value = data.content
+        fields.link.value = data.link
+        fields.expireAt.value = data.expireAt
+        fields.expireAtDisplay.value = timestampToDatetimeLocal(data.expireAt)
+        fields.allowDismiss.checked = data.allowDismiss
+
+        const itemRef = data
+
+        fields.id.addEventListener('input', (event) => {
+          itemRef.id = event.target.value
+          renderOutputs()
+        })
+        fields.level.addEventListener('change', (event) => {
+          itemRef.level = event.target.value
+          renderOutputs()
+        })
+        fields.content.addEventListener('input', (event) => {
+          itemRef.content = event.target.value
+          renderOutputs()
+        })
+        fields.link.addEventListener('input', (event) => {
+          itemRef.link = event.target.value
+          renderOutputs()
+        })
+        fields.expireAtDisplay.addEventListener('input', (event) => {
+          itemRef.expireAt = datetimeLocalToTimestamp(event.target.value)
+          fields.expireAt.value = itemRef.expireAt || ''
+          renderOutputs()
+        })
+        fields.allowDismiss.addEventListener('change', (event) => {
+          itemRef.allowDismiss = event.target.checked
+          renderOutputs()
+        })
+
+        element.querySelector('[data-action="remove"]').addEventListener('click', () => {
+          noticesState.items = noticesState.items.filter((item) => item !== itemRef)
+          renderNotices()
+          renderOutputs()
+        })
+
+        return element
+      }
+
+      function renderNotices() {
+        noticeList.innerHTML = ''
+        noticesState.items.forEach((item) => {
+          noticeList.appendChild(createNoticeItem(item))
+        })
+      }
+
+      function getUpdateJson() {
+        return JSON.stringify(
+          {
+            versionName: updateState.versionName,
+            versionCode: updateState.versionCode,
+            title: updateState.title,
+            log: updateState.log,
+            url: updateState.url,
+            date: updateState.date,
+            force: updateState.force,
+          },
+          null,
+          2
+        )
+      }
+
+      function getNoticesJson() {
+        return JSON.stringify(
+          {
+            globalEnable: noticesState.globalEnable,
+            pollInterval: noticesState.pollInterval,
+            items: noticesState.items,
+          },
+          null,
+          2
+        )
+      }
+
+      function renderOutputs() {
+        $('#updateOutput').value = getUpdateJson()
+        $('#noticesOutput').value = getNoticesJson()
+      }
+
+      async function copyText(text) {
+        await navigator.clipboard.writeText(text)
+      }
+
+      function downloadText(filename, text) {
+        const blob = new Blob([text], { type: 'application/json;charset=utf-8' })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = filename
+        link.click()
+        URL.revokeObjectURL(url)
+      }
+
+      function addNotice() {
+        noticesState.items.push({
+          id: `notice_${new Date().toISOString().slice(2, 10).replace(/-/g, '')}_${noticesState.items.length + 1}`,
+          level: 'info',
+          content: '',
+          link: '',
+          expireAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+          allowDismiss: true,
+        })
+        renderNotices()
+        renderOutputs()
+      }
+
+      async function bootstrap() {
+        try {
+          const response = await fetch('/update.json', { cache: 'no-store' })
+          if (response.ok) {
+            Object.assign(updateState, await response.json())
+          }
+        } catch (error) {
+          console.warn('读取 update.json 失败，继续使用默认值', error)
+        }
+
+        try {
+          const response = await fetch('/notices.json', { cache: 'no-store' })
+          if (response.ok) {
+            const data = await response.json()
+            noticesState.globalEnable = data.globalEnable ?? true
+            noticesState.pollInterval = data.pollInterval ?? 7200
+            noticesState.items = Array.isArray(data.items) ? data.items : []
+          }
+        } catch (error) {
+          console.warn('读取 notices.json 失败，继续使用默认值', error)
+        }
+
+        syncUpdateForm()
+        $('#noticeGlobalEnable').checked = noticesState.globalEnable
+        $('#noticePollInterval').value = noticesState.pollInterval
+        renderNotices()
+        renderOutputs()
+      }
+
+      bindUpdateInputs()
+
+      $('#noticeGlobalEnable').addEventListener('change', (event) => {
+        noticesState.globalEnable = event.target.checked
+        renderOutputs()
+      })
+
+      $('#noticePollInterval').addEventListener('input', (event) => {
+        noticesState.pollInterval = Number(event.target.value) || 0
+        renderOutputs()
+      })
+
+      $('#addNoticeButton').addEventListener('click', addNotice)
+      $('#copyUpdateButton').addEventListener('click', () => copyText(getUpdateJson()))
+      $('#copyNoticesButton').addEventListener('click', () => copyText(getNoticesJson()))
+      $('#downloadUpdateButton').addEventListener('click', () => downloadText('update.json', getUpdateJson()))
+      $('#downloadNoticesButton').addEventListener('click', () => downloadText('notices.json', getNoticesJson()))
+
+      bootstrap()
+    </script>
+  </body>
+</html>

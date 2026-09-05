@@ -1,0 +1,38 @@
+{
+  "globalEnable": true,
+  "pollInterval": 7200,
+  "items": [
+    {
+      "id": "notice_260428_hello",
+      "level": "info",
+      "content": "觉得有帮助的话，可以分享给身边人使用。设置-右上角【分享】🐧🐧",
+      "link": "jingjie://page/settings",
+      "expireAt": 1816099200000,
+      "allowDismiss": false
+    },
+    {
+      "id": "notice_260428_2",
+      "level": "info",
+      "content": "⚠️ 若驿站页白屏或点不动按钮，请在设置中清理缓存",
+      "link": "jingjie://page/settings",
+      "expireAt": 1780315860000,
+      "allowDismiss": false
+    },
+    {
+      "id": "notice_260517_3",
+      "level": "info",
+      "content": "设置页底部可反馈你遇到的问题，也可加群反馈",
+      "link": "jingjie://page/settings",
+      "expireAt": 1784055180000,
+      "allowDismiss": true
+    },
+    {
+      "id": "notice_260520_4",
+      "level": "info",
+      "content": "v2.1.1新版本中驿站页的bug彻底解决了\n反正是淘宝的锅（👊👊",
+      "link": "",
+      "expireAt": 1779368400000,
+      "allowDismiss": true
+    }
+  ]
+}
