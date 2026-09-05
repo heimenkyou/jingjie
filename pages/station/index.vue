@@ -66,6 +66,7 @@ import {
 	setStationAutoOpenTarget,
 	STATION_TARGETS
 } from '@/utils/station.js';
+import { ANALYTICS_EVENTS, track, trackPage } from '@/utils/analytics.js';
 
 const AUTO_OPEN_DELAY = 450;
 const systemInfo = uni.getSystemInfoSync();
@@ -121,6 +122,7 @@ const openTarget = (key) => {
 		openingTimer = null;
 		openingKey.value = '';
 		openingExternalApp = true;
+		track(key === 'identity' ? ANALYTICS_EVENTS.stationOpenIdentityCode : ANALYTICS_EVENTS.stationOpenHome);
 
 		// #ifdef APP-PLUS
 		plus.runtime.openURL(target.url, () => {
@@ -190,6 +192,7 @@ onLoad(() => {
 });
 
 onShow(() => {
+	trackPage('/pages/station/index');
 	autoOpenTarget.value = getStationAutoOpenTarget();
 	if (openingExternalApp) {
 		openingExternalApp = false;

@@ -201,6 +201,7 @@ import { APP_VERSION_NAME } from '@/utils/appVersion.js';
 import { checkForUpdate } from '@/utils/updateChecker.js';
 import { BRIGHTNESS_SCENES, getBrightnessPreferences, setSceneAutoBrightnessEnabled } from '@/utils/brightness.js';
 import { getStationAutoOpenTarget, setStationAutoOpenTarget } from '@/utils/station.js';
+import { ANALYTICS_EVENTS, track, trackPage } from '@/utils/analytics.js';
 
 const DEFAULT_STARTUP_TAB = 'barcode';
 const startupTab = ref(DEFAULT_STARTUP_TAB);
@@ -265,6 +266,7 @@ const submitFeedback = () => {
 			version: currentVersionName
 		},
 		success: (res) => {
+			track(ANALYTICS_EVENTS.feedbackSubmit);
 			uni.showToast({ title: '提交成功，感谢您的反馈', icon: 'none' });
 			feedbackForm.value.content = '';
 			feedbackForm.value.contact = '';
@@ -549,6 +551,7 @@ const loadDownloadCount = () => {
 };
 
 onShow(() => {
+	trackPage('/pages/settings/index');
 	// 设置页作为配置中心，每次显示都重新读取最新偏好。
 	loadPreferences();
 });

@@ -8,6 +8,9 @@
 </template>
 
 <script setup>
+import { onShow } from '@dcloudio/uni-app';
+import { trackPage } from '@/utils/analytics.js';
+
 /**
  * 处理二维码长按事件
  */
@@ -43,6 +46,10 @@ const saveImage = () => {
 		}
 	});
 };
+
+onShow(() => {
+	trackPage('/pages/share/index');
+});
 </script>
 
 <style scoped>

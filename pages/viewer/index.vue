@@ -95,6 +95,7 @@ import {
 	shouldShowManualBrightnessHint,
 	toggleSceneBrightness
 } from '@/utils/brightness.js';
+import { ANALYTICS_EVENTS, track, trackPage } from '@/utils/analytics.js';
 
 const barcodes = ref([]);
 const showBrightnessTip = ref(false);
@@ -263,6 +264,7 @@ const addBarcode = () => {
 				}
 				const nextIndex = Math.max(0, barcodes.value.length - 1);
 				persistBarcodes(nextIndex);
+				track(ANALYTICS_EVENTS.barcodeAdd);
 				uni.showToast({
 					title: '添加成功，点击名称可编辑或删除',
 					icon: 'none',
@@ -400,6 +402,7 @@ const handleBarcodeActions = (item, index) => {
 };
 
 onShow(() => {
+	trackPage('/pages/viewer/index');
 	// 条码页每次显示都重新读取条码和亮度状态，避免设置页改动不同步。
 	loadBarcodes();
 	syncBrightnessBoostedState();
