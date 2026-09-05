@@ -10,7 +10,10 @@ export const ANALYTICS_EVENTS = Object.freeze({
 	barcodeAdd: 'barcode_add',
 	stationOpenIdentityCode: 'station_open_identity_code',
 	stationOpenHome: 'station_open_home',
-	feedbackSubmit: 'feedback_submit'
+	feedbackSubmit: 'feedback_submit',
+	appError: 'app_error',
+	updateDownload: 'update_download',
+	updateInstall: 'update_install'
 });
 
 let sessionId = '';

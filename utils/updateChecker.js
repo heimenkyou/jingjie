@@ -1,5 +1,6 @@
 import { APP_VERSION_CODE as CURRENT_VERSION_CODE, APP_VERSION_NAME as CURRENT_VERSION_NAME } from '@/utils/appVersion.js';
 import { ref } from 'vue';
+import { ANALYTICS_EVENTS, track } from '@/utils/analytics.js';
 
 const UPDATE_URL = 'https://jingjie.luowb.cn/update.json';
 const OFFICIAL_SITE_URL = 'https://jingjie.luowb.cn';
@@ -138,6 +139,7 @@ const installApk = (filePath) => {
 		{ force: false },
 		() => {
 			console.log('[净界-updateChecker] 安装触发成功');
+			track(ANALYTICS_EVENTS.updateInstall);
 			plus.runtime.quit();
 		},
 		(err) => {
@@ -210,7 +212,10 @@ const startDownload = (info, isSilent, isTest = false) => {
 	}
 
 	downloadState = 'DOWNLOADING';
-	if (!isTest) reportDownload();
+	if (!isTest) {
+		reportDownload();
+		track(ANALYTICS_EVENTS.updateDownload, { source: 'inapp' });
+	}
 
 	console.log(`[净界-updateChecker] 开始${isSilent ? '静默' : ''}下载更新: ${info.url}`);
 	let lastProgress = -1;
