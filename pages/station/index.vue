@@ -1,5 +1,5 @@
 <template>
-	<view class="station-page">
+	<view class="station-page" :style="backgroundStyle">
 		<!-- #ifdef APP-PLUS -->
 		<GlobalNoticeBar />
 		<!-- #endif -->
@@ -69,6 +69,7 @@ import {
 	STATION_TARGETS
 } from '@/utils/station.js';
 import { ANALYTICS_EVENTS, track, trackPage } from '@/utils/analytics.js';
+import { getBackgroundImage } from '@/utils/background.js';
 import { showActionSheet, showModal, showToast } from '@/utils/feedback.js';
 import UpdateDownloadDialog from '@/components/UpdateDownloadDialog.vue';
 import AppFeedback from '@/components/AppFeedback.vue';
@@ -93,12 +94,17 @@ const stationTargets = [
 
 const autoOpenTarget = ref(getStationAutoOpenTarget());
 const openingKey = ref('');
+const backgroundImage = ref(getBackgroundImage());
 let openingTimer = null;
 let hasAutoOpened = false;
 let openingExternalApp = false;
 
 const contentStyle = computed(() => ({
 	paddingTop: `${statusBarHeight + 22}px`
+}));
+
+const backgroundStyle = computed(() => ({
+	'--page-background-image': `url("${backgroundImage.value}")`
 }));
 
 const openingTarget = computed(() => {
@@ -198,6 +204,7 @@ onLoad(() => {
 onShow(() => {
 	trackPage('/pages/station/index');
 	autoOpenTarget.value = getStationAutoOpenTarget();
+	backgroundImage.value = getBackgroundImage();
 	if (openingExternalApp) {
 		openingExternalApp = false;
 		return;
@@ -224,7 +231,7 @@ onUnload(() => {
 .station-page {
 	min-height: 100vh;
 	background-color: #F3F7FA;
-	background-image: url('/static/settings-background.webp');
+	background-image: var(--page-background-image);
 	background-position: center;
 	background-size: auto 100vh;
 	background-repeat: no-repeat;

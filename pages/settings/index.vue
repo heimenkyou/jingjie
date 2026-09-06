@@ -1,5 +1,5 @@
 <template>
-	<view class="content">
+	<view class="content" :style="backgroundStyle">
 		<!-- #ifdef APP-PLUS -->
 		<GlobalNoticeBar />
 		<!-- #endif -->
@@ -36,6 +36,14 @@
 					<text class="setting-row-title">条码页默认展示</text>
 					<view class="setting-row-value">
 						<text class="setting-row-text">{{ currentDefaultBarcodeLabel }}</text>
+						<text class="setting-row-arrow">></text>
+					</view>
+				</view>
+
+				<view class="setting-row" @click="chooseBackgroundImage">
+					<text class="setting-row-title">应用背景</text>
+					<view class="setting-row-value">
+						<text class="setting-row-text">{{ currentBackgroundLabel }}</text>
 						<text class="setting-row-arrow">></text>
 					</view>
 				</view>
@@ -213,6 +221,13 @@ import { checkForUpdate, testUpdateDownload } from '@/utils/updateChecker.js';
 import { BRIGHTNESS_SCENES, getBrightnessPreferences, setSceneAutoBrightnessEnabled } from '@/utils/brightness.js';
 import { getStationAutoOpenTarget, setStationAutoOpenTarget } from '@/utils/station.js';
 import { ANALYTICS_EVENTS, track, trackPage } from '@/utils/analytics.js';
+import {
+	getBackgroundImage,
+	hasCustomBackgroundImage,
+	resetCustomBackgroundImage,
+	saveCustomBackgroundImage,
+	setCustomBackgroundImage
+} from '@/utils/background.js';
 import { showActionSheet, showModal, showToast } from '@/utils/feedback.js';
 import UpdateDownloadDialog from '@/components/UpdateDownloadDialog.vue';
 import AppFeedback from '@/components/AppFeedback.vue';
@@ -225,6 +240,7 @@ const otherExpanded = ref(false);
 const downloadCount = ref(null);
 const barcodes = ref([]);
 const defaultBarcodeId = ref('');
+const backgroundImage = ref(getBackgroundImage());
 
 const startupOptions = [
 	{
@@ -320,6 +336,17 @@ const currentDefaultBarcodeLabel = computed(() => {
 });
 
 /**
+ * 当前应用背景对应的展示文字。
+ */
+const currentBackgroundLabel = computed(() => {
+	return backgroundImage.value && hasCustomBackgroundImage() ? '自定义' : '默认';
+});
+
+const backgroundStyle = computed(() => ({
+	'--page-background-image': `url("${backgroundImage.value}")`
+}));
+
+/**
  * 读取启动项、自动打开和亮度偏好设置。
  */
 const loadPreferences = () => {
@@ -334,6 +361,48 @@ const loadPreferences = () => {
 
 	viewerAutoBrightnessEnabled.value = getBrightnessPreferences().viewerAuto;
 	stationAutoOpenTarget.value = getStationAutoOpenTarget();
+	backgroundImage.value = getBackgroundImage();
+};
+
+/**
+ * 从相册选择并保存自定义背景图。
+ */
+const selectCustomBackgroundImage = () => {
+	uni.chooseImage({
+		count: 1,
+		sizeType: ['compressed'],
+		sourceType: ['album'],
+		success: async (res) => {
+			const imagePath = await saveCustomBackgroundImage(res.tempFilePaths[0]);
+			if (!imagePath) {
+				showToast({ title: '背景图保存失败', icon: 'error' });
+				return;
+			}
+
+			setCustomBackgroundImage(imagePath);
+			backgroundImage.value = imagePath;
+			showToast({ title: '背景图已更新', icon: 'success' });
+		}
+	});
+};
+
+/**
+ * 选择、替换或恢复应用背景图。
+ */
+const chooseBackgroundImage = () => {
+	const hasCustomBackground = hasCustomBackgroundImage();
+	const actions = hasCustomBackground ? ['更换背景图', '恢复默认背景'] : ['选择背景图'];
+
+	showActionSheet({ itemList: actions }).then((index) => {
+		if (actions[index] === '恢复默认背景') {
+			resetCustomBackgroundImage();
+			backgroundImage.value = getBackgroundImage();
+			showToast({ title: '已恢复默认背景', icon: 'success' });
+			return;
+		}
+
+		selectCustomBackgroundImage();
+	});
 };
 
 /**
@@ -391,6 +460,8 @@ const resetDefaultPreferences = () => {
 		startupTab.value = DEFAULT_STARTUP_TAB;
 		uni.setStorageSync('startupTab', DEFAULT_STARTUP_TAB);
 		resetDefaultBarcodePreference();
+		resetCustomBackgroundImage();
+		backgroundImage.value = getBackgroundImage();
 		showToast({
 			title: '已恢复默认设置',
 			icon: 'success',
@@ -605,7 +676,7 @@ onMounted(() => {
 	flex-direction: column;
 	min-height: 100vh;
 	background-color: #F3F7FA;
-	background-image: url('/static/settings-background.webp');
+	background-image: var(--page-background-image);
 	background-position: center;
 	background-size: auto 100vh;
 	background-repeat: no-repeat;
