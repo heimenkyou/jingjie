@@ -238,58 +238,71 @@ const persistBarcodes = (nextIndex = 0) => {
 };
 
 /**
- * 新增条码，并在成功后提示用户可点击名称继续管理。
+ * 将临时图片复制到应用私有目录，避免相册缓存被清理后条码失效。
+ * @param {string} tempFilePath 临时图片路径
+ * @param {string} fileName 保存后的文件名
+ * @returns {Promise<string>} 保存后的本地路径，失败时为空字符串
+ */
+const saveBarcodeImage = (tempFilePath, fileName) => {
+	return new Promise((resolve) => {
+		// #ifdef APP-PLUS
+		plus.io.resolveLocalFileSystemURL('_doc', (entry) => {
+			entry.getDirectory('barcodes', { create: true }, (dirEntry) => {
+				plus.io.resolveLocalFileSystemURL(tempFilePath, (fileEntry) => {
+					fileEntry.copyTo(dirEntry, fileName, (newEntry) => {
+						resolve(newEntry.toLocalURL());
+					}, () => resolve(''));
+				}, () => resolve(''));
+			}, () => resolve(''));
+		}, () => resolve(''));
+		// #endif
+
+		// #ifndef APP-PLUS
+		resolve(tempFilePath);
+		// #endif
+	});
+};
+
+/**
+ * 新增一张或多张条码，并在成功后提示用户可点击名称继续管理。
  */
 const addBarcode = () => {
 	uni.chooseImage({
-		count: 1,
+		count: 9,
 		sizeType: ['compressed'],
 		sourceType: ['album', 'camera'],
-		success: (res) => {
-			const tempFilePath = res.tempFilePaths[0];
-
-			const finishAdd = (finalPath) => {
-				const newBarcode = {
-					id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+		success: async (res) => {
+			const savedPaths = await Promise.all(
+				res.tempFilePaths.map((tempFilePath, index) => saveBarcodeImage(
+					tempFilePath,
+					`${Date.now()}_${index}_${Math.random().toString(36).slice(2, 11)}.jpg`
+				))
+			);
+			const newBarcodes = savedPaths
+				.filter(Boolean)
+				.map((imageData) => ({
+					id: `${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
 					name: '',
-					imageData: finalPath
-				};
+					imageData
+				}));
 
-				barcodes.value.push(newBarcode);
-				if (barcodes.value.length === 1) {
-					uni.setStorageSync('defaultBarcodeId', newBarcode.id);
-				}
-				const nextIndex = Math.max(0, barcodes.value.length - 1);
-				persistBarcodes(nextIndex);
-				track(ANALYTICS_EVENTS.barcodeAdd);
-				showToast({
-					title: '添加成功，点击名称可编辑或删除',
-					icon: 'none',
-					duration: 2200
-				});
-			};
+			if (!newBarcodes.length) {
+				showToast({ title: '保存失败', icon: 'error' });
+				return;
+			}
 
-			// #ifdef APP-PLUS
-			const savedFileName = `${Date.now()}.jpg`;
-			plus.io.resolveLocalFileSystemURL('_doc', (entry) => {
-				entry.getDirectory('barcodes', { create: true }, (dirEntry) => {
-					plus.io.resolveLocalFileSystemURL(tempFilePath, (fileEntry) => {
-						fileEntry.copyTo(dirEntry, savedFileName, (newEntry) => {
-							finishAdd(newEntry.toLocalURL());
-						}, () => {
-							showToast({
-								title: '保存失败',
-								icon: 'error'
-							});
-						});
-					});
-				});
+			const hasNoBarcode = barcodes.value.length === 0;
+			barcodes.value.push(...newBarcodes);
+			if (hasNoBarcode) {
+				uni.setStorageSync('defaultBarcodeId', newBarcodes[0].id);
+			}
+			persistBarcodes(barcodes.value.length - 1);
+			track(ANALYTICS_EVENTS.barcodeAdd);
+			showToast({
+				title: `已添加 ${newBarcodes.length} 张条码，点击名称可编辑或删除`,
+				icon: 'none',
+				duration: 2200
 			});
-			// #endif
-
-			// #ifndef APP-PLUS
-			finishAdd(tempFilePath);
-			// #endif
 		}
 	});
 };
