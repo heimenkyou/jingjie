@@ -1,5 +1,5 @@
 <template>
-	<view class="content" :style="backgroundStyle">
+	<view class="content" :class="{ 'has-custom-background': hasCustomBackground }" :style="backgroundStyle">
 		<!-- #ifdef APP-PLUS -->
 		<GlobalNoticeBar />
 		<!-- #endif -->
@@ -241,6 +241,7 @@ const downloadCount = ref(null);
 const barcodes = ref([]);
 const defaultBarcodeId = ref('');
 const backgroundImage = ref(getBackgroundImage());
+const hasCustomBackground = ref(hasCustomBackgroundImage());
 
 const startupOptions = [
 	{
@@ -339,12 +340,12 @@ const currentDefaultBarcodeLabel = computed(() => {
  * 当前应用背景对应的展示文字。
  */
 const currentBackgroundLabel = computed(() => {
-	return backgroundImage.value && hasCustomBackgroundImage() ? '自定义' : '默认';
+	return hasCustomBackground.value ? '自定义' : '默认';
 });
 
-const backgroundStyle = computed(() => ({
-	'--page-background-image': `url("${backgroundImage.value}")`
-}));
+const backgroundStyle = computed(() => hasCustomBackground.value
+	? { '--page-background-image': `url("${backgroundImage.value}")` }
+	: {});
 
 /**
  * 读取启动项、自动打开和亮度偏好设置。
@@ -362,6 +363,7 @@ const loadPreferences = () => {
 	viewerAutoBrightnessEnabled.value = getBrightnessPreferences().viewerAuto;
 	stationAutoOpenTarget.value = getStationAutoOpenTarget();
 	backgroundImage.value = getBackgroundImage();
+	hasCustomBackground.value = hasCustomBackgroundImage();
 };
 
 /**
@@ -381,6 +383,7 @@ const selectCustomBackgroundImage = () => {
 
 			setCustomBackgroundImage(imagePath);
 			backgroundImage.value = imagePath;
+			hasCustomBackground.value = true;
 			showToast({ title: '背景图已更新', icon: 'success' });
 		}
 	});
@@ -397,6 +400,7 @@ const chooseBackgroundImage = () => {
 		if (actions[index] === '恢复默认背景') {
 			resetCustomBackgroundImage();
 			backgroundImage.value = getBackgroundImage();
+			hasCustomBackground.value = false;
 			showToast({ title: '已恢复默认背景', icon: 'success' });
 			return;
 		}
@@ -462,6 +466,7 @@ const resetDefaultPreferences = () => {
 		resetDefaultBarcodePreference();
 		resetCustomBackgroundImage();
 		backgroundImage.value = getBackgroundImage();
+		hasCustomBackground.value = false;
 		showToast({
 			title: '已恢复默认设置',
 			icon: 'success',
@@ -676,12 +681,16 @@ onMounted(() => {
 	flex-direction: column;
 	min-height: 100vh;
 	background-color: #F3F7FA;
-	background-image: var(--page-background-image);
+	background-image: url('/static/settings-background.webp');
 	background-position: center;
 	background-size: auto 100vh;
 	background-repeat: no-repeat;
 	background-attachment: fixed;
 	position: relative;
+}
+
+.content.has-custom-background {
+	background-image: var(--page-background-image);
 }
 
 .header {

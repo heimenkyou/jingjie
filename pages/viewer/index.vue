@@ -1,5 +1,5 @@
 <template>
-	<view class="container" :style="backgroundStyle">
+	<view class="container" :class="{ 'has-custom-background': hasCustomBackground }" :style="backgroundStyle">
 		<!-- #ifdef APP-PLUS -->
 		<GlobalNoticeBar />
 		<!-- #endif -->
@@ -99,7 +99,7 @@ import {
 	toggleSceneBrightness
 } from '@/utils/brightness.js';
 import { ANALYTICS_EVENTS, track, trackPage } from '@/utils/analytics.js';
-import { getBackgroundImage } from '@/utils/background.js';
+import { getBackgroundImage, hasCustomBackgroundImage } from '@/utils/background.js';
 import { showActionSheet, showModal, showToast } from '@/utils/feedback.js';
 import UpdateDownloadDialog from '@/components/UpdateDownloadDialog.vue';
 import AppFeedback from '@/components/AppFeedback.vue';
@@ -110,11 +110,12 @@ const brightnessTipText = ref('✨ 已自动调亮屏幕');
 const currentIndex = ref(0);
 const isBrightnessBoosted = ref(false);
 const backgroundImage = ref(getBackgroundImage());
+const hasCustomBackground = ref(hasCustomBackgroundImage());
 let brightnessTipTimer = null;
 
-const backgroundStyle = computed(() => ({
-	'--page-background-image': `url("${backgroundImage.value}")`
-}));
+const backgroundStyle = computed(() => hasCustomBackground.value
+	? { '--page-background-image': `url("${backgroundImage.value}")` }
+	: {});
 
 /**
  * 条码页的轮播数据，末尾始终追加一个“添加条码”卡片。
@@ -417,6 +418,7 @@ const handleBarcodeActions = (item, index) => {
 onShow(() => {
 	trackPage('/pages/viewer/index');
 	backgroundImage.value = getBackgroundImage();
+	hasCustomBackground.value = hasCustomBackgroundImage();
 	// 条码页每次显示都重新读取条码和亮度状态，避免设置页改动不同步。
 	loadBarcodes();
 	syncBrightnessBoostedState();
@@ -453,7 +455,7 @@ onHide(() => {
 	height: 100vh;
 	width: 100vw;
 	background-color: #F3F7FA;
-	background-image: var(--page-background-image);
+	background-image: url('/static/settings-background.webp');
 	background-position: center;
 	background-size: auto 100vh;
 	background-repeat: no-repeat;
@@ -468,11 +470,19 @@ onHide(() => {
 	inset: -14px;
 	z-index: 0;
 	background-color: #F3F7FA;
-	background-image: var(--page-background-image);
+	background-image: url('/static/settings-background.webp');
 	background-position: center;
 	background-size: auto 100vh;
 	background-repeat: no-repeat;
 	filter: blur(10px);
+}
+
+.container.has-custom-background {
+	background-image: var(--page-background-image);
+}
+
+.container.has-custom-background::before {
+	background-image: var(--page-background-image);
 }
 
 .brightness-toggle {
