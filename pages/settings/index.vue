@@ -396,8 +396,8 @@ const selectCustomBackgroundImage = () => {
  * 选择、替换或恢复应用背景图。
  */
 const chooseBackgroundImage = () => {
-	const hasCustomBackground = hasCustomBackgroundImage();
-	const actions = hasCustomBackground ? ['更换背景图', '恢复默认背景'] : ['选择背景图'];
+	const hasStoredCustomBackground = hasCustomBackgroundImage();
+	const actions = hasStoredCustomBackground ? ['更换背景图', '恢复默认背景'] : ['选择背景图'];
 
 	showActionSheet({ itemList: actions }).then((index) => {
 		if (actions[index] === '恢复默认背景') {
