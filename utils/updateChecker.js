@@ -41,6 +41,36 @@ export const updatePrompt = ref({
 	onCancel: null
 });
 
+/**
+ * 清除已下载安装包的状态，重新进入下载流程。
+ */
+const resetDownloadedState = () => {
+	downloadState = 'IDLE';
+	localFilePath = null;
+	uni.removeStorageSync(STORAGE_KEYS.downloadedVersion);
+	uni.removeStorageSync(STORAGE_KEYS.downloadedFilePath);
+};
+
+/**
+ * 校验缓存的安装包文件是否仍存在。
+ * @param {string | null} filePath 安装包路径
+ * @returns {Promise<boolean>}
+ */
+const isDownloadedFileAvailable = (filePath) => new Promise((resolve) => {
+	if (!filePath) {
+		resolve(false);
+		return;
+	}
+
+	// #ifdef APP-PLUS
+	plus.io.resolveLocalFileSystemURL(filePath, () => resolve(true), () => resolve(false));
+	// #endif
+
+	// #ifndef APP-PLUS
+	resolve(false);
+	// #endif
+});
+
 const showDownloadProgress = (percent, downloadedSize = 0, totalSize = 0) => {
 	updateDownloadProgress.value = {
 		visible: !isProgressDialogHidden,
@@ -176,11 +206,7 @@ const installApk = (filePath) => {
 		(err) => {
 			console.error('[净界-updateChecker] 安装失败', err);
 			showToast({ title: `安装失败，文件可能已损坏，请重新下载`, icon: 'none', duration: 3000 });
-			// 安装失败，清空相关状态和缓存，使其可以重新下载
-			downloadState = 'IDLE';
-			localFilePath = null;
-			uni.removeStorageSync(STORAGE_KEYS.downloadedVersion);
-			uni.removeStorageSync(STORAGE_KEYS.downloadedFilePath);
+			resetDownloadedState();
 		}
 	);
 };
@@ -196,13 +222,18 @@ const promptInstall = (info) => {
 		confirmText: '立即安装',
 		cancelText: '稍后',
 		showCancel: !info.force,
-		onConfirm: () => installApk(localFilePath),
+		onConfirm: async () => {
+			if (await isDownloadedFileAvailable(localFilePath)) {
+				installApk(localFilePath);
+				return;
+			}
+
+			resetDownloadedState();
+			startDownload(info, false, info.isTest);
+		},
 		onCancel: () => {
 			if (info.isTest) {
-				downloadState = 'IDLE';
-				localFilePath = null;
-				uni.removeStorageSync(STORAGE_KEYS.downloadedVersion);
-				uni.removeStorageSync(STORAGE_KEYS.downloadedFilePath);
+				resetDownloadedState();
 				return;
 			}
 
@@ -242,19 +273,18 @@ const startDownload = (info, isSilent, isTest = false) => {
 	}
 
 	downloadState = 'DOWNLOADING';
-	if (!isTest) {
-		reportDownload();
-		track(ANALYTICS_EVENTS.updateDownload, { source: 'inapp' });
-	}
 
 	console.log(`[净界-updateChecker] 开始${isSilent ? '静默' : ''}下载更新: ${info.url}`);
 	let lastProgress = -1;
 	isProgressDialogHidden = false;
 	showDownloadProgress(0);
-	currentDownloadTask = plus.downloader.createDownload(
+	const targetVersion = info.versionCode;
+	const downloadTask = plus.downloader.createDownload(
 		info.url,
 		{ filename: '_downloads/update/' },
 		(download, status) => {
+			if (currentDownloadTask !== downloadTask || currentTargetVersion !== targetVersion) return;
+
 			currentDownloadTask = null;
 			hideUpdateDownloadProgress();
 			const contentType = typeof download.getResponseHeader === 'function'
@@ -269,6 +299,10 @@ const startDownload = (info, isSilent, isTest = false) => {
 
 				uni.setStorageSync(STORAGE_KEYS.downloadedVersion, currentTargetVersion);
 				uni.setStorageSync(STORAGE_KEYS.downloadedFilePath, localFilePath);
+				if (!isTest) {
+					reportDownload();
+					track(ANALYTICS_EVENTS.updateDownload, { source: 'inapp' });
+				}
 				promptInstall(info);
 			} else {
 				console.warn(`[净界-updateChecker] 下载失败, HTTP状态码: ${status}, Content-Type: ${contentType}`);
@@ -278,8 +312,10 @@ const startDownload = (info, isSilent, isTest = false) => {
 			}
 		}
 	);
+	currentDownloadTask = downloadTask;
 
-	currentDownloadTask.addEventListener('statechanged', (task) => {
+	downloadTask.addEventListener('statechanged', (task) => {
+		if (currentDownloadTask !== downloadTask || currentTargetVersion !== targetVersion) return;
 		if (task.totalSize <= 0) {
 			showDownloadProgress(0, task.downloadedSize, 0);
 			return;
@@ -292,7 +328,7 @@ const startDownload = (info, isSilent, isTest = false) => {
 		showDownloadProgress(percent, task.downloadedSize, task.totalSize);
 	});
 
-	currentDownloadTask.start();
+	downloadTask.start();
 };
 // #endif
 
@@ -332,10 +368,7 @@ export const checkForUpdate = async ({ silent = true, force = false, test = fals
 			// 如果发现的版本和之前的不一样，需要重置状态
 			if (currentTargetVersion !== data.versionCode) {
 				console.log(`[净界-updateChecker] 发现新版本 ${data.versionCode}，重置之前版本 ${currentTargetVersion} 的状态`);
-				downloadState = 'IDLE';
-				localFilePath = null;
-				uni.removeStorageSync(STORAGE_KEYS.downloadedVersion);
-				uni.removeStorageSync(STORAGE_KEYS.downloadedFilePath);
+				resetDownloadedState();
 				// #ifdef APP-PLUS
 				if (currentDownloadTask) {
 					currentDownloadTask.abort();
@@ -343,6 +376,10 @@ export const checkForUpdate = async ({ silent = true, force = false, test = fals
 				}
 				// #endif
 				currentTargetVersion = data.versionCode;
+			}
+
+			if (downloadState === 'SUCCESS' && !(await isDownloadedFileAvailable(localFilePath))) {
+				resetDownloadedState();
 			}
 
 			// #ifdef APP-PLUS
