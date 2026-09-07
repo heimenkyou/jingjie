@@ -80,7 +80,8 @@ const setScreenBrightness = (value) =>
 
 		uni.setScreenBrightness({
 			value: normalizeBrightnessValue(value),
-			complete: () => resolve(true)
+			success: () => resolve(true),
+			fail: () => resolve(false)
 		});
 	});
 
