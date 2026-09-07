@@ -138,6 +138,8 @@ const openTarget = (key) => {
 
 		// #ifdef APP-PLUS
 		plus.runtime.openURL(target.url, () => {
+			openingExternalApp = false;
+			hasAutoOpened = false;
 			showToast({ title: '未能打开淘宝，请确认已安装', icon: 'none' });
 		});
 		// #endif
