@@ -33,16 +33,30 @@ const normalizeBrightnessValue = (value) => {
 /**
  * 获取页面场景对应的亮度状态，不存在时自动初始化。
  * @param {string} scene 页面场景
- * @returns {{originalBrightness: number | null, boosted: boolean}}
+ * @returns {{originalBrightness: number | null, boosted: boolean, operation: Promise<boolean>}}
  */
 const getSceneState = (scene) => {
 	if (!sceneStateMap.has(scene)) {
 		sceneStateMap.set(scene, {
 			originalBrightness: null,
-			boosted: false
+			boosted: false,
+			operation: Promise.resolve()
 		});
 	}
 	return sceneStateMap.get(scene);
+};
+
+/**
+ * 串行执行同一页面场景的亮度操作，避免切页时点亮与恢复交错。
+ * @param {string} scene 页面场景
+ * @param {() => Promise<boolean>} operation 亮度操作
+ * @returns {Promise<boolean>}
+ */
+const enqueueSceneBrightnessOperation = (scene, operation) => {
+	const state = getSceneState(scene);
+	const queuedOperation = state.operation.then(operation, operation);
+	state.operation = queuedOperation.catch(() => false);
+	return queuedOperation;
 };
 
 /**
@@ -133,7 +147,7 @@ export const ensureOriginalBrightnessCaptured = async (scene) => {
  * @param {string} scene 页面场景
  * @returns {Promise<boolean>}
  */
-export const boostSceneBrightness = async (scene) => {
+const boostSceneBrightness = (scene) => enqueueSceneBrightnessOperation(scene, async () => {
 	await ensureOriginalBrightnessCaptured(scene);
 	const state = getSceneState(scene);
 	if (!isAppPlus()) {
@@ -146,14 +160,14 @@ export const boostSceneBrightness = async (scene) => {
 		state.boosted = true;
 	}
 	return success;
-};
+});
 
 /**
  * 将指定页面场景恢复到进入前的原始亮度。
  * @param {string} scene 页面场景
  * @returns {Promise<boolean>}
  */
-export const restoreSceneBrightness = async (scene) => {
+const restoreSceneBrightness = (scene) => enqueueSceneBrightnessOperation(scene, async () => {
 	const state = getSceneState(scene);
 	if (state.originalBrightness === null) {
 		state.boosted = false;
@@ -170,22 +184,47 @@ export const restoreSceneBrightness = async (scene) => {
 	state.originalBrightness = null;
 	state.boosted = false;
 	return success;
-};
+});
+
+export { boostSceneBrightness, restoreSceneBrightness };
 
 /**
  * 切换指定页面场景的亮度状态。
  * @param {string} scene 页面场景
  * @returns {Promise<boolean>} `true` 表示切到高亮，`false` 表示恢复原亮度
  */
-export const toggleSceneBrightness = async (scene) => {
+export const toggleSceneBrightness = (scene) => enqueueSceneBrightnessOperation(scene, async () => {
 	const state = getSceneState(scene);
 	if (state.boosted) {
-		await restoreSceneBrightness(scene);
+		if (state.originalBrightness === null) {
+			state.boosted = false;
+			return false;
+		}
+
+		if (!isAppPlus()) {
+			state.originalBrightness = null;
+			state.boosted = false;
+			return false;
+		}
+
+		await setScreenBrightness(state.originalBrightness);
+		state.originalBrightness = null;
+		state.boosted = false;
 		return false;
 	}
 
-	return await boostSceneBrightness(scene);
-};
+	await ensureOriginalBrightnessCaptured(scene);
+	if (!isAppPlus()) {
+		state.boosted = true;
+		return true;
+	}
+
+	const boosted = await setScreenBrightness(1);
+	if (boosted) {
+		state.boosted = true;
+	}
+	return boosted;
+});
 
 /**
  * 判断指定页面场景当前是否处于高亮状态。
