@@ -57,3 +57,25 @@ export const saveCustomBackgroundImage = (tempFilePath) => {
 		// #endif
 	});
 };
+
+/**
+ * 删除应用私有目录中已不再使用的背景图。
+ * @param {string} imagePath 背景图片路径
+ * @returns {Promise<void>}
+ */
+export const removeCustomBackgroundImage = (imagePath) => new Promise((resolve) => {
+	if (!imagePath.includes('/backgrounds/')) {
+		resolve();
+		return;
+	}
+
+	// #ifdef APP-PLUS
+	plus.io.resolveLocalFileSystemURL(imagePath, (entry) => {
+		entry.remove(resolve, resolve);
+	}, resolve);
+	// #endif
+
+	// #ifndef APP-PLUS
+	resolve();
+	// #endif
+});

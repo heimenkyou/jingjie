@@ -224,6 +224,7 @@ import { ANALYTICS_EVENTS, track, trackPage } from '@/utils/analytics.js';
 import {
 	getBackgroundImage,
 	hasCustomBackgroundImage,
+	removeCustomBackgroundImage,
 	resetCustomBackgroundImage,
 	saveCustomBackgroundImage,
 	setCustomBackgroundImage
@@ -381,9 +382,11 @@ const selectCustomBackgroundImage = () => {
 				return;
 			}
 
+			const previousImagePath = hasCustomBackground.value ? backgroundImage.value : '';
 			setCustomBackgroundImage(imagePath);
 			backgroundImage.value = imagePath;
 			hasCustomBackground.value = true;
+			await removeCustomBackgroundImage(previousImagePath);
 			showToast({ title: '背景图已更新', icon: 'success' });
 		}
 	});
@@ -398,9 +401,11 @@ const chooseBackgroundImage = () => {
 
 	showActionSheet({ itemList: actions }).then((index) => {
 		if (actions[index] === '恢复默认背景') {
+			const previousImagePath = backgroundImage.value;
 			resetCustomBackgroundImage();
 			backgroundImage.value = getBackgroundImage();
 			hasCustomBackground.value = false;
+			removeCustomBackgroundImage(previousImagePath);
 			showToast({ title: '已恢复默认背景', icon: 'success' });
 			return;
 		}
@@ -464,9 +469,11 @@ const resetDefaultPreferences = () => {
 		startupTab.value = DEFAULT_STARTUP_TAB;
 		uni.setStorageSync('startupTab', DEFAULT_STARTUP_TAB);
 		resetDefaultBarcodePreference();
+		const previousImagePath = backgroundImage.value;
 		resetCustomBackgroundImage();
 		backgroundImage.value = getBackgroundImage();
 		hasCustomBackground.value = false;
+		removeCustomBackgroundImage(previousImagePath);
 		showToast({
 			title: '已恢复默认设置',
 			icon: 'success',
