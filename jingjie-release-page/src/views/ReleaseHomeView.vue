@@ -1,9 +1,9 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 
-const directDownloadUrl = 'https://gitee.com/heimenkyou/jingjie/releases/download/v2.2.0/JingJie_v2.2.0.apk'
+const directDownloadUrl = 'https://gitee.com/heimenkyou/jingjie/releases/download/v2.2.1/JingJie_v2.2.1.apk'
 const downloadApiUrl = '/api/downloads'
-const versionName = 'v2.2.0'
+const versionName = 'v2.2.1'
 const isAutoDownloading = ref(false)
 const downloadCount = ref('')
 const downloadCountLoading = ref(false)
