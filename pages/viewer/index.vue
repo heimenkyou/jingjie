@@ -271,6 +271,28 @@ const saveBarcodeImage = (tempFilePath, fileName) => {
 };
 
 /**
+ * 删除应用私有目录中已不再使用的条码图片。
+ * @param {string} imagePath 条码图片路径
+ * @returns {Promise<void>}
+ */
+const removeBarcodeImage = (imagePath) => new Promise((resolve) => {
+	if (!imagePath.includes('/barcodes/')) {
+		resolve();
+		return;
+	}
+
+	// #ifdef APP-PLUS
+	plus.io.resolveLocalFileSystemURL(imagePath, (entry) => {
+		entry.remove(resolve, resolve);
+	}, resolve);
+	// #endif
+
+	// #ifndef APP-PLUS
+	resolve();
+	// #endif
+});
+
+/**
  * 新增一张或多张条码，并在成功后提示用户可点击名称继续管理。
  */
 const addBarcode = () => {
@@ -337,10 +359,11 @@ const deleteBarcode = (index) => {
 	showModal({
 		title: '确认删除',
 		content: '确定要删除这个条码吗？'
-	}).then((res) => {
+	}).then(async (res) => {
 		if (!res.confirm) return;
 
-		const deletedId = barcodes.value[index]?.id;
+		const deletedBarcode = barcodes.value[index];
+		const deletedId = deletedBarcode?.id;
 		barcodes.value.splice(index, 1);
 		const defaultBarcodeId = uni.getStorageSync('defaultBarcodeId') || '';
 		if (deletedId === defaultBarcodeId) {
@@ -352,6 +375,7 @@ const deleteBarcode = (index) => {
 		}
 
 		persistBarcodes(Math.max(0, Math.min(index, barcodes.value.length - 1)));
+		await removeBarcodeImage(deletedBarcode?.imageData || '');
 		showToast({
 			title: '删除成功',
 			icon: 'success'
