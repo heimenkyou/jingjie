@@ -74,6 +74,32 @@ export const resolveUpdatePrompt = (confirmed) => {
 	handler?.();
 };
 
+/**
+ * 解析并校验更新信息，避免异常响应阻塞后续检查。
+ * @param {unknown} payload 更新接口响应
+ * @returns {{versionCode: number, versionName: string, url: string}}
+ */
+const parseUpdateInfo = (payload) => {
+	let data = payload;
+	if (typeof payload === 'string') {
+		try {
+			data = JSON.parse(payload);
+		} catch {
+			throw new Error('更新信息格式无效');
+		}
+	}
+
+	const versionCode = Number(data?.versionCode);
+	if (!Number.isInteger(versionCode) || versionCode <= 0 || !data?.versionName?.trim() || !data?.url?.trim()) {
+		throw new Error('更新信息字段无效');
+	}
+
+	return {
+		...data,
+		versionCode
+	};
+};
+
 const requestUpdateInfo = () => new Promise((resolve, reject) => {
 	uni.request({
 		url: UPDATE_URL,
@@ -81,7 +107,11 @@ const requestUpdateInfo = () => new Promise((resolve, reject) => {
 		timeout: REQUEST_TIMEOUT,
 		success: (res) => {
 			if (res.statusCode >= 200 && res.statusCode < 300 && res.data) {
-				resolve(typeof res.data === 'string' ? JSON.parse(res.data) : res.data);
+				try {
+					resolve(parseUpdateInfo(res.data));
+				} catch (error) {
+					reject(error);
+				}
 				return;
 			}
 			reject(new Error(`更新信息请求失败: ${res.statusCode}`));
