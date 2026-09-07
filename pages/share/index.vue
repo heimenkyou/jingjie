@@ -33,18 +33,30 @@ const handleLongPress = () => {
  * 保存本地图片到相册
  */
 const saveImage = () => {
-	uni.saveImageToPhotosAlbum({
-		filePath: '/static/share.webp',
-		success: () => {
-			showToast({
-				title: '已保存到相册',
-				icon: 'success'
+	uni.getImageInfo({
+		src: '/static/share.webp',
+		success: (res) => {
+			uni.saveImageToPhotosAlbum({
+				filePath: res.path,
+				success: () => {
+					showToast({
+						title: '已保存到相册',
+						icon: 'success'
+					});
+				},
+				fail: (err) => {
+					console.error('保存失败', err);
+					showToast({
+						title: '保存失败或已取消',
+						icon: 'none'
+					});
+				}
 			});
 		},
 		fail: (err) => {
-			console.error('保存失败', err);
+			console.error('读取二维码图片失败', err);
 			showToast({
-				title: '保存失败或已取消',
+				title: '读取二维码失败',
 				icon: 'none'
 			});
 		}
