@@ -7,7 +7,7 @@
 
 [![Uni-app](https://img.shields.io/badge/Framework-Uni--app-brightgreen)](https://uniapp.dcloud.io/)
 [![Vue 3](https://img.shields.io/badge/Vue-3.x-green)](https://vuejs.org/)
-[![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
+[![License](https://img.shields.io/badge/License-GPL--3.0-blue)](LICENSE)
 [![Github](https://img.shields.io/badge/Download-Github-blue)](https://github.com/heimenkyou/jingjie/releases)
 [![Gitee](https://img.shields.io/badge/Download-Gitee-red)](https://gitee.com/heimenkyou/jingjie/releases)
 
@@ -90,7 +90,14 @@ git clone https://github.com/heimenkyou/jingjie.git
 **👤 罗文彬** + **🤖 AI 协作**
 
 - **联系**: wenbin.lo@outlook.com
-- **协议**: [MIT License](LICENSE)
+
+## 开源协议
+
+Copyright (C) 2026 Wenbin Luo (罗文彬)
+
+本项目采用 [GNU General Public License v3.0](LICENSE)（GPL-3.0）发布。你可以依据该协议复制、修改和分发本项目；分发修改版本时，须以 GPL-3.0 发布并提供对应源代码。
+
+本项目按“现状”提供，不附带任何明示或默示担保。
 
 <div align="center">
 <strong>Made with ❤️ for a better life</strong>
