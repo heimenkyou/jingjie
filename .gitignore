@@ -40,3 +40,6 @@ AGENTS.md
 opencode.jsonc
 # 本地打包配置（含证书密码，勿提交）
 scripts/pack.local.json
+
+AGENTS.md
+opencode.jsonc

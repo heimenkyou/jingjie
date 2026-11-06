@@ -183,7 +183,7 @@ const addStationShortcut = () => {
 					title: result.updated ? '快捷方式已更新' : '快捷方式已创建',
 					content: result.updated
 						? '桌面图标和跳转目标已更新。'
-						: '若桌面未出现，请在系统设置中允许净界创建桌面快捷方式后重试。',
+						: '若桌面未出现，请在系统设置中允许净界App创建桌面快捷方式后重试。',
 					showCancel: false,
 					confirmText: '知道了'
 				});
