@@ -1,6 +1,12 @@
 import unittest
+import os
+import sqlite3
+import tempfile
+from contextlib import closing
+from pathlib import Path
+from unittest.mock import patch
 
-from app import app, parse_date_range, validate_event, validate_feedback
+from app import app, create_app, parse_date_range, validate_event, validate_feedback
 
 
 VALID_EVENT = {
@@ -62,3 +68,50 @@ class ValidateEventTest(unittest.TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json, {'error': '反馈内容长度必须在 1 至 500 字符之间'})
+
+
+class SQLiteRoutesTest(unittest.TestCase):
+    """验证 SQLite 下统计、反馈和下载接口。"""
+
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.path = Path(self.directory.name) / 'analytics.db'
+        schema = Path(__file__).resolve().parents[1] / 'sql' / 'sqlite.sql'
+        with closing(sqlite3.connect(self.path)) as connection, connection:
+            connection.executescript(schema.read_text(encoding='utf-8'))
+            connection.execute('INSERT INTO download_statistics (id, total_downloads) VALUES (1, 132)')
+        with patch.dict(os.environ, {'SQLITE_PATH': str(self.path), 'ANALYTICS_ADMIN_TOKEN': 'test-token'}):
+            self.client = create_app().test_client()
+        self.headers = {'Authorization': 'Bearer test-token'}
+
+    def tearDown(self):
+        self.directory.cleanup()
+
+    def test_statistics_feedback_and_downloads(self):
+        self.assertEqual(self.client.post('/api/jingjie-track', json=VALID_EVENT).status_code, 204)
+        self.assertEqual(self.client.post('/api/feedback', json={'content': '反馈', 'version': 'v1'}).status_code, 204)
+        self.assertEqual(self.client.post('/api/downloads').json['count'], 133)
+        self.assertEqual(self.client.get('/api/downloads').json['count'], 133)
+        feedback = self.client.get('/api/admin/feedback', headers=self.headers).json
+        self.assertEqual(feedback[0]['content'], '反馈')
+        with closing(sqlite3.connect(self.path)) as connection:
+            day = connection.execute('SELECT DATE(created_at) FROM analytics_events').fetchone()[0]
+        query = f'?start={day}&end={day}'
+        daily = self.client.get('/api/admin/analytics/daily' + query, headers=self.headers).json
+        self.assertEqual(daily['days'], [{'day': day, 'pv': 1, 'uv': 1}])
+        pages = self.client.get('/api/admin/analytics/pages' + query, headers=self.headers).json
+        self.assertEqual(pages['pages'][0]['page'], '/pages/viewer/index')
+        versions = self.client.get('/api/admin/analytics/versions' + query + '&event=page_show', headers=self.headers).json
+        self.assertEqual(versions['versions'][0]['version'], 'v2.2.0')
+
+    def test_database_removed_after_start_returns_error(self):
+        self.path.unlink()
+        self.assertEqual(self.client.get('/api/healthz').status_code, 503)
+        self.assertFalse(self.path.exists())
+
+    def test_missing_database_created_at_start(self):
+        self.path.unlink()
+        with patch.dict(os.environ, {'SQLITE_PATH': str(self.path)}):
+            client = create_app().test_client()
+        self.assertEqual(client.get('/api/healthz').status_code, 200)
+        self.assertEqual(client.get('/api/downloads').json['count'], 0)

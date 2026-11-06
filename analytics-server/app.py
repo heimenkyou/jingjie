@@ -2,15 +2,15 @@ import json
 import logging
 import os
 import re
+import sqlite3
+from contextlib import closing
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from hmac import compare_digest
 from pathlib import Path
 from typing import Any
 
-import pymysql
 from flask import Flask, g, jsonify, request
-from pymysql.err import MySQLError
 from werkzeug.exceptions import RequestEntityTooLarge
 
 
@@ -64,6 +64,7 @@ class Settings:
     mysql_user: str
     mysql_password: str
     admin_token: str
+    sqlite_path: str
 
     @classmethod
     def from_env(cls) -> 'Settings':
@@ -78,28 +79,36 @@ class Settings:
             mysql_user=os.getenv('MYSQL_USER', 'jingjie_analytics'),
             mysql_password=os.getenv('MYSQL_PASSWORD', ''),
             admin_token=os.getenv('ANALYTICS_ADMIN_TOKEN', ''),
+            sqlite_path=os.getenv('SQLITE_PATH', str(Path(__file__).with_name('data') / 'analytics.sqlite3')),
         )
 
 
-def get_connection(settings: Settings) -> pymysql.Connection:
-    """每个请求独立使用一个短连接，避免常驻连接占用资源。"""
+def get_connection(settings: Settings) -> sqlite3.Connection:
+    """每个请求独立使用连接，避免跨线程共享。"""
     connection = g.get('analytics_db')
     if connection is None:
-        connection = pymysql.connect(
-            host=settings.mysql_host,
-            port=settings.mysql_port,
-            user=settings.mysql_user,
-            password=settings.mysql_password,
-            database=settings.mysql_database,
-            charset='utf8mb4',
-            autocommit=True,
-            connect_timeout=3,
-            read_timeout=3,
-            write_timeout=3,
-            cursorclass=pymysql.cursors.DictCursor,
-        )
+        connection = sqlite3.connect(f'{Path(settings.sqlite_path).resolve().as_uri()}?mode=rw', uri=True, timeout=5, isolation_level=None)
+        connection.row_factory = sqlite3.Row
         g.analytics_db = connection
     return connection
+
+
+def initialize_database(path: Path) -> None:
+    """首次启动时创建数据库；已有文件保持不变。"""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        with path.open('xb'):
+            pass
+    except FileExistsError:
+        return
+    try:
+        schema = Path(__file__).with_name('sql').joinpath('sqlite.sql').read_text(encoding='utf-8')
+        with closing(sqlite3.connect(path)) as connection, connection:
+            connection.executescript(schema)
+            connection.execute('INSERT INTO download_statistics (id, total_downloads) VALUES (1, 0)')
+    except BaseException:
+        path.unlink(missing_ok=True)
+        raise
 
 
 def close_connection(_: BaseException | None = None) -> None:
@@ -196,6 +205,7 @@ def create_app() -> Flask:
     """创建统计服务应用。"""
     load_env_file(ENV_FILE)
     settings = Settings.from_env()
+    initialize_database(Path(settings.sqlite_path))
     app = Flask(__name__)
     app.config['MAX_CONTENT_LENGTH'] = 8 * 1024
     app.teardown_appcontext(close_connection)
@@ -208,10 +218,9 @@ def create_app() -> Flask:
     def healthz():
         """检查服务与数据库连接状态。"""
         try:
-            with get_connection(settings).cursor() as cursor:
-                cursor.execute('SELECT 1')
+            get_connection(settings).execute('SELECT 1')
             return jsonify(status='ok')
-        except MySQLError:
+        except sqlite3.Error:
             app.logger.exception('健康检查数据库连接失败')
             return jsonify(error='数据库不可用'), 503
 
@@ -226,13 +235,12 @@ def create_app() -> Flask:
             return jsonify(error=error), 400
 
         try:
-            with get_connection(settings).cursor() as cursor:
-                cursor.execute(
+            get_connection(settings).execute(
                     '''
                     INSERT INTO analytics_events (
                         event_name, install_id, session_id, app_version,
                         platform, client_timestamp, properties
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
                     ''',
                     (
                         event['event'],
@@ -244,7 +252,7 @@ def create_app() -> Flask:
                         event['properties'],
                     ),
                 )
-        except MySQLError:
+        except sqlite3.Error:
             app.logger.exception('统计事件写入失败')
             return jsonify(error='数据库不可用'), 503
 
@@ -254,10 +262,8 @@ def create_app() -> Flask:
     def get_download_count():
         """返回当前累计下载次数。"""
         try:
-            with get_connection(settings).cursor() as cursor:
-                cursor.execute('SELECT total_downloads FROM download_statistics WHERE id = 1')
-                row = cursor.fetchone()
-        except MySQLError:
+            row = get_connection(settings).execute('SELECT total_downloads FROM download_statistics WHERE id = 1').fetchone()
+        except sqlite3.Error:
             app.logger.exception('下载量查询失败')
             return jsonify(error='数据库不可用'), 503
 
@@ -267,11 +273,10 @@ def create_app() -> Flask:
     def increment_download_count():
         """记录一次下载请求并返回更新后的累计次数。"""
         try:
-            with get_connection(settings).cursor() as cursor:
-                cursor.execute('UPDATE download_statistics SET total_downloads = total_downloads + 1 WHERE id = 1')
-                cursor.execute('SELECT total_downloads FROM download_statistics WHERE id = 1')
-                row = cursor.fetchone()
-        except MySQLError:
+            row = get_connection(settings).execute(
+                "UPDATE download_statistics SET total_downloads = total_downloads + 1, updated_at = strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime') WHERE id = 1 RETURNING total_downloads"
+            ).fetchone()
+        except sqlite3.Error:
             app.logger.exception('下载量写入失败')
             return jsonify(error='数据库不可用'), 503
 
@@ -288,12 +293,11 @@ def create_app() -> Flask:
             return jsonify(error=error), 400
 
         try:
-            with get_connection(settings).cursor() as cursor:
-                cursor.execute(
-                    'INSERT INTO feedback_items (content, contact, app_version) VALUES (%s, %s, %s)',
+            get_connection(settings).execute(
+                    'INSERT INTO feedback_items (content, contact, app_version) VALUES (?, ?, ?)',
                     (feedback['content'], feedback['contact'], feedback['app_version']),
                 )
-        except MySQLError:
+        except sqlite3.Error:
             app.logger.exception('反馈写入失败')
             return jsonify(error='数据库不可用'), 503
 
@@ -315,17 +319,15 @@ def create_app() -> Flask:
             return unauthorized
 
         try:
-            with get_connection(settings).cursor() as cursor:
-                cursor.execute(
+            rows = get_connection(settings).execute(
                     '''
                     SELECT content, contact, app_version, created_at
                     FROM feedback_items
                     ORDER BY id DESC
                     LIMIT 100
                     '''
-                )
-                rows = cursor.fetchall()
-        except MySQLError:
+            ).fetchall()
+        except sqlite3.Error:
             app.logger.exception('反馈查询失败')
             return jsonify(error='数据库不可用'), 503
 
@@ -334,7 +336,7 @@ def create_app() -> Flask:
                 'content': row['content'],
                 'contact': row['contact'],
                 'version': row['app_version'],
-                'timestamp': row['created_at'].strftime('%Y-%m-%d %H:%M:%S'),
+                'timestamp': row['created_at'][:19],
             }
             for row in rows
         ])
@@ -355,23 +357,21 @@ def create_app() -> Flask:
             return jsonify(error='不支持的事件名'), 400
 
         try:
-            with get_connection(settings).cursor() as cursor:
-                cursor.execute(
+            rows = get_connection(settings).execute(
                     '''
                     SELECT DATE(created_at) AS day,
                            COUNT(*) AS pv,
                            COUNT(DISTINCT install_id) AS uv
                     FROM analytics_events
-                    WHERE created_at >= %s
-                      AND created_at < DATE_ADD(%s, INTERVAL 1 DAY)
-                      AND event_name = %s
+                    WHERE created_at >= ?
+                      AND created_at < ?
+                      AND event_name = ?
                     GROUP BY DATE(created_at)
                     ORDER BY day
                     ''',
-                    (start_date, end_date, event),
-                )
-                rows = cursor.fetchall()
-        except MySQLError:
+                    (start_date.isoformat(), (end_date + timedelta(days=1)).isoformat(), event),
+            ).fetchall()
+        except sqlite3.Error:
             app.logger.exception('日统计查询失败')
             return jsonify(error='数据库不可用'), 503
 
@@ -379,7 +379,7 @@ def create_app() -> Flask:
             event=event,
             start=start_date.isoformat(),
             end=end_date.isoformat(),
-            days=[{'day': row['day'].isoformat(), 'pv': row['pv'], 'uv': row['uv']} for row in rows],
+            days=[{'day': row['day'], 'pv': row['pv'], 'uv': row['uv']} for row in rows],
         )
 
     @app.get('/api/admin/analytics/pages')
@@ -394,23 +394,21 @@ def create_app() -> Flask:
             return jsonify(error=error), 400
 
         try:
-            with get_connection(settings).cursor() as cursor:
-                cursor.execute(
+            rows = get_connection(settings).execute(
                     '''
                     SELECT page_path AS page,
                            COUNT(*) AS pv,
                            COUNT(DISTINCT install_id) AS uv
                     FROM analytics_events
-                    WHERE created_at >= %s
-                      AND created_at < DATE_ADD(%s, INTERVAL 1 DAY)
+                    WHERE created_at >= ?
+                      AND created_at < ?
                       AND event_name = 'page_show'
                     GROUP BY page_path
                     ORDER BY pv DESC
                     ''',
-                    (start_date, end_date),
-                )
-                rows = cursor.fetchall()
-        except MySQLError:
+                    (start_date.isoformat(), (end_date + timedelta(days=1)).isoformat()),
+            ).fetchall()
+        except sqlite3.Error:
             app.logger.exception('页面统计查询失败')
             return jsonify(error='数据库不可用'), 503
 
@@ -436,23 +434,21 @@ def create_app() -> Flask:
             return jsonify(error='不支持的事件名'), 400
 
         try:
-            with get_connection(settings).cursor() as cursor:
-                cursor.execute(
+            rows = get_connection(settings).execute(
                     '''
                     SELECT app_version AS version,
                            COUNT(*) AS count,
                            COUNT(DISTINCT install_id) AS devices
                     FROM analytics_events
-                    WHERE created_at >= %s
-                      AND created_at < DATE_ADD(%s, INTERVAL 1 DAY)
-                      AND event_name = %s
+                    WHERE created_at >= ?
+                      AND created_at < ?
+                      AND event_name = ?
                     GROUP BY app_version
                     ORDER BY devices DESC
                     ''',
-                    (start_date, end_date, event),
-                )
-                rows = cursor.fetchall()
-        except MySQLError:
+                    (start_date.isoformat(), (end_date + timedelta(days=1)).isoformat(), event),
+            ).fetchall()
+        except sqlite3.Error:
             app.logger.exception('版本统计查询失败')
             return jsonify(error='数据库不可用'), 503
 

@@ -1,6 +1,6 @@
 # 净界统计服务
 
-轻量 Flask 服务，将客户端统计事件、下载次数和用户反馈写入 MySQL 8.0+，并提供受令牌保护的管理查询接口。
+轻量 Flask 服务，将客户端统计事件、下载次数和用户反馈写入 SQLite，并提供受令牌保护的管理查询接口。
 
 ## 初始化
 
@@ -9,21 +9,17 @@ cd analytics-server
 uv sync
 ```
 
-复制 `.env.example` 为 `.env`，填写 MySQL 连接信息。`.env` 已被 Git 忽略。
+复制 `.env.example` 为 `.env`，填写 SQLite 路径和管理令牌。`.env` 已被 Git 忽略。
 
-使用具有建库权限的 MySQL 账号执行初始化脚本：
+已有 MySQL 数据时，配置 MySQL 连接信息后迁移到不存在的目标文件：
 
 ```bash
-mysql -u root -p < sql/init.sql
+uv run python migrate_to_sqlite.py /绝对路径/analytics.sqlite3
 ```
 
-为运行账号授权时，数据库名需要与 `.env` 中的 `MYSQL_DATABASE` 一致：
+迁移需要 MySQL 的一致性快照。切换前停止旧服务写入并备份 MySQL，迁移后核对三个表的记录数、下载数和统计结果，再配置 SQLite 路径并启动新服务。应确认 MySQL 会话时区与 SQLite 所在服务器本地时区一致，避免日统计日期发生变化。
 
-```sql
-CREATE USER 'jingjie_analytics'@'127.0.0.1' IDENTIFIED BY '请设置强密码';
-GRANT SELECT, INSERT ON jingjie_analytics.* TO 'jingjie_analytics'@'127.0.0.1';
-FLUSH PRIVILEGES;
-```
+数据库文件及其目录须由服务账号持有并持久保存。首次启动时，若文件不存在，服务会创建空数据库，下载数初始为零。定期使用 SQLite 备份 API 备份；切换已有服务前应核对数据库路径和历史数据。
 
 ## 运行
 
@@ -47,7 +43,7 @@ uv run gunicorn --workers 1 --threads 1 --bind 127.0.0.1:8000 app:app
 
 | 方法 | 路径 | 用途 |
 | --- | --- | --- |
-| `GET` | `/api/healthz` | 检查服务与 MySQL 连通性 |
+| `GET` | `/api/healthz` | 检查服务与 SQLite 连通性 |
 | `POST` | `/api/jingjie-track` | 写入客户端统计事件 |
 | `GET` | `/api/admin/analytics/daily` | 查询按日 PV、UV |
 | `GET` | `/api/admin/analytics/pages` | 查询按页面 PV、UV |
