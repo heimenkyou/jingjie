@@ -11,6 +11,10 @@
 [![Github](https://img.shields.io/badge/Download-Github-blue)](https://github.com/heimenkyou/jingjie/releases)
 [![Gitee](https://img.shields.io/badge/Download-Gitee-red)](https://gitee.com/heimenkyou/jingjie/releases)
 
+<br>
+
+![访问量](https://count.getloli.com/get/@heimenkyou-jingjie?theme=moebooru)
+
 </div>
 
 ---
